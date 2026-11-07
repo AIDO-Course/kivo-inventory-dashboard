@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" role="img" aria-label="Kivo">
+  <rect width="64" height="64" rx="14" fill="#0B5563"/>
+  <path d="M32 12 L50 22 L32 32 L14 22 Z" fill="#F2A541"/>
+  <path d="M32 12 L50 22 L50 42 L32 52 L14 42 L14 22 Z M14 22 L32 32 L50 22 M32 32 L32 52" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="78" y="47" font-family="'Segoe UI', Inter, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="-1" fill="#0B5563">kivo</text>
+</svg>
