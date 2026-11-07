@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kivo dashboard: browser tests</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; color: #14262B; background: #FFFFFF; }
+    li { margin: 4px 0; font-family: ui-monospace, monospace; font-size: 14px; }
+    .pass { color: #24693F; }
+    .fail { color: #B42318; }
+    iframe { border: 1px solid #D5E0E3; display: block; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Browser tests (SPEC.md §11)</h1>
+  <p id="summary">Running…</p>
+  <ul id="results"></ul>
+  <div id="frames"></div>
+  <script type="module">
+    const results = document.getElementById('results');
+    let pass = 0, fail = 0;
+    const log = (name, ok, msg = '') => {
+      ok ? pass++ : fail++;
+      const li = document.createElement('li');
+      li.className = ok ? 'pass' : 'fail';
+      li.textContent = `${ok ? 'PASS' : 'FAIL'}  ${name}${msg ? ' — ' + msg : ''}`;
+      results.append(li);
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    async function until(fn, timeout = 8000) {
+      const t0 = performance.now();
+      while (performance.now() - t0 < timeout) { const v = fn(); if (v) return v; await sleep(50); }
+      throw new Error('timeout');
+    }
+    async function test(name, fn) {
+      try { await fn(); log(name, true); } catch (e) { log(name, false, e.message); }
+    }
+    const assert = (v, msg) => { if (!v) throw new Error(msg); };
+
+    function frame(src, width = 1440, height = 900) {
+      const f = document.createElement('iframe');
+      f.width = width; f.height = height; f.src = src;
+      document.getElementById('frames').append(f);
+      return new Promise((res) => f.addEventListener('load', () => res(f), { once: true }));
+    }
+    const ready = (doc) => until(() => doc.querySelectorAll('#kpis .kpi').length === 7 && doc.querySelector('#inv-card tbody tr'));
+
+    const f = await frame('../index.html');
+    const w = f.contentWindow;
+    const d = f.contentDocument;
+    await ready(d);
+    await sleep(700); // count-up finishes
+    let loads = 0;
+    w.addEventListener('load', () => loads++);
+    const val = (i) => d.querySelectorAll('.kpi__value')[i].textContent.trim();
+    const change = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
+
+    await test('M1 7 tiles in order with spec labels', async () => {
+      const labels = [...d.querySelectorAll('.kpi__label')].map((l) => l.textContent.trim());
+      const want = ['SKUs', 'Stock value', 'Low stock', 'Out of stock', 'In transit', 'Late', 'On-time %'];
+      assert(JSON.stringify(labels) === JSON.stringify(want), labels.join(','));
+      assert(val(0) === '642' && val(2) === '31' && val(3) === '9' && val(4) === '58' && val(5) === '14', 'values');
+    });
+    await test('M1 every delta shows an arrow and a sign; on-time delta in pts', async () => {
+      const deltas = [...d.querySelectorAll('.kpi__delta')].map((x) => x.textContent).filter((t) => /vs/.test(t));
+      assert(deltas.length === 2 && deltas.every((t) => /[▲▼▶] [+−±]/.test(t)), deltas.join(' | '));
+      assert(/pts/.test(deltas[1]), 'pts');
+    });
+    await test('M8 header shows "Data as of Nov 7, 2026, 8:00 AM ET · Mock data"', async () => {
+      assert(d.getElementById('data-asof-text').textContent === 'Data as of Nov 7, 2026, 8:00 AM ET', d.getElementById('data-asof-text').textContent);
+      assert(d.querySelector('.badge--mock').textContent === 'Mock data', 'badge');
+    });
+    await test('M2 switching to Reno NV updates tiles, chart, alerts and tables without reload; hash = #wh=RNO', async () => {
+      const before = val(0);
+      change(d.getElementById('wh-select'), 'RNO');
+      await sleep(700);
+      assert(val(0) === '430' && val(0) !== before, `SKUs ${val(0)}`);
+      assert(w.location.hash === '#wh=RNO', w.location.hash);
+      const whs = [...d.querySelectorAll('#inv-card tbody tr td:nth-child(5)')].map((t) => t.textContent);
+      assert(whs.length && whs.every((t) => t === 'Reno NV'), 'inventory not filtered');
+      assert(d.querySelectorAll('#alerts-list .alerts-list__meta').length && [...d.querySelectorAll('#alerts-list .alerts-list__meta')].every((x) => x.textContent.includes('Reno NV')), 'alerts');
+      assert(d.getElementById('inv-warehouse').disabled && !d.getElementById('inv-wh-note').hidden, 'lock');
+      assert(loads === 0, 'page reloaded');
+      change(d.getElementById('wh-select'), 'ALL');
+      await sleep(700);
+    });
+    await test('M2 opening the page with #wh=RNO starts on Reno', async () => {
+      const g = await frame('../index.html#wh=RNO', 1024, 600);
+      await ready(g.contentDocument);
+      assert(g.contentDocument.getElementById('wh-select').value === 'RNO', 'not Reno');
+      g.remove();
+    });
+    await test('M3 alerts panel count = Low + Out; See all filters the table to the same count', async () => {
+      assert(d.getElementById('alerts-count').textContent === '40', d.getElementById('alerts-count').textContent);
+      d.getElementById('alerts-see-all').click();
+      await sleep(50);
+      assert(d.getElementById('inv-count').textContent.startsWith('40 of'), d.getElementById('inv-count').textContent);
+      const first = d.querySelector('#alerts-list .badge').textContent.trim();
+      assert(first === 'Out', 'Out not first');
+      d.getElementById('inv-clear').click();
+      await sleep(50);
+    });
+    await test('M4 search "0412" shows only matching rows (after 200 ms debounce)', async () => {
+      const s = d.getElementById('inv-search');
+      s.value = '0412'; s.dispatchEvent(new w.Event('input', { bubbles: true }));
+      await sleep(350);
+      const rows = [...d.querySelectorAll('#inv-card tbody tr')];
+      assert(rows.length > 0, 'no rows');
+      assert(rows.every((r) => /0412/i.test(r.cells[1].textContent + r.cells[2].textContent)), 'bad row');
+      d.getElementById('inv-clear').click(); await sleep(50);
+    });
+    await test('M4 status Out shows only qty 0 and the title count matches', async () => {
+      change(d.getElementById('inv-status'), 'out');
+      await sleep(50);
+      const rows = [...d.querySelectorAll('#inv-card tbody tr')];
+      assert(rows.length === 9 && rows.every((r) => r.cells[5].textContent === '0'), `rows ${rows.length}`);
+      assert(d.getElementById('inv-count').textContent.startsWith('9 of'), d.getElementById('inv-count').textContent);
+      d.getElementById('inv-clear').click(); await sleep(50);
+    });
+    await test('M4 clicking Qty sorts asc then desc and aria-sort follows', async () => {
+      d.querySelector('#inv-card [data-sort="qty"]').click(); await sleep(50);
+      let th = d.querySelector('#inv-card [data-sort="qty"]').closest('th');
+      const q = () => [...d.querySelectorAll('#inv-card tbody tr')].map((r) => Number(r.cells[5].textContent.replace(/,/g, '')));
+      let a = q();
+      assert(th.getAttribute('aria-sort') === 'ascending' && a.every((v, i) => !i || a[i - 1] <= v), 'asc');
+      d.querySelector('#inv-card [data-sort="qty"]').click(); await sleep(50);
+      th = d.querySelector('#inv-card [data-sort="qty"]').closest('th');
+      a = q();
+      assert(th.getAttribute('aria-sort') === 'descending' && a.every((v, i) => !i || a[i - 1] >= v), 'desc');
+    });
+    await test('M4 25 rows per page; pager total = ceil(filtered / 25)', async () => {
+      assert(d.querySelectorAll('#inv-card tbody tr').length === 25, 'rows');
+      const nums = [...d.querySelectorAll('#inv-card .pager [data-page][aria-label]')].map((b) => Number(b.textContent));
+      assert(Math.max(...nums) === Math.ceil(1410 / 25), `max page ${Math.max(...nums)}`);
+    });
+    await test('M5 late shipments first, each with "(N days late)"', async () => {
+      const rows = [...d.querySelectorAll('#sh-card tbody tr')];
+      const st = rows.map((r) => r.cells[0].textContent.trim());
+      const lastLate = st.lastIndexOf('Late');
+      assert(lastLate === 13, `late rows on page 1: ${lastLate + 1}`);
+      assert(st.slice(0, 14).every((s) => s === 'Late'), 'order');
+      assert(rows.slice(0, 14).every((r) => /\(\d+ days? late\)/.test(r.cells[5].textContent)), 'days late');
+    });
+    await test('M5 Direction = Inbound shows only inbound rows', async () => {
+      d.querySelector('[data-direction="inbound"]').click(); await sleep(50);
+      const rows = [...d.querySelectorAll('#sh-card tbody tr')];
+      assert(rows.length && rows.every((r) => r.cells[2].textContent === 'Inbound'), 'not inbound');
+      d.getElementById('sh-clear').click(); await sleep(50);
+    });
+    await test('M6 bar click shows tooltip; Tab+Enter shows it; Esc closes', async () => {
+      const bar = d.querySelector('#chart .bar');
+      bar.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+      const tip = d.querySelector('#chart .tooltip');
+      assert(!tip.hidden && /% of total/.test(tip.textContent), 'click');
+      bar.focus();
+      bar.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      assert(!tip.hidden, 'enter');
+      bar.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      assert(tip.hidden, 'esc');
+    });
+    await test('M6 chart has at most 4 gridlines and a summary naming the largest group', async () => {
+      assert(d.querySelectorAll('#chart .gridline').length <= 4, 'gridlines');
+      assert(/holds the most stock value/.test(d.getElementById('chart-summary').textContent), 'summary');
+    });
+    await test('M6 Show as table renders the same numbers', async () => {
+      d.getElementById('chart-table-toggle').click(); await sleep(50);
+      const rows = d.querySelectorAll('#chart-table tbody tr');
+      assert(rows.length === 5 && !d.getElementById('chart-table').hidden && d.getElementById('chart').hidden, 'table');
+      d.getElementById('chart-table-toggle').click(); await sleep(50);
+    });
+    await test('M7 clicking a row opens a dialog with every field; Esc closes and focus returns', async () => {
+      const row = d.querySelector('#inv-card tbody tr');
+      row.focus();
+      row.click(); await sleep(50);
+      const dlg = d.getElementById('detail');
+      assert(dlg.open, 'not open');
+      const dts = [...dlg.querySelectorAll('dt')].map((x) => x.textContent);
+      for (const k of ['Status', 'Product', 'SKU', 'Category', 'Warehouse', 'Qty on hand', 'Reorder point', 'Unit cost', 'Stock value', 'Supplier', 'Lead time']) assert(dts.includes(k), `missing ${k}`);
+      assert(!dlg.querySelector('input, textarea, [contenteditable]'), 'edit control');
+      dlg.close(); await sleep(50);
+      assert(d.activeElement && d.activeElement.dataset.key === row.dataset.key, 'focus not returned');
+    });
+    await test('States: no results shows exact empty text and Clear filters works', async () => {
+      const s = d.getElementById('inv-search');
+      s.value = 'zzzz-nothing'; s.dispatchEvent(new w.Event('input', { bubbles: true }));
+      await sleep(350);
+      assert(d.querySelector('#inv-card .empty p').textContent === 'No products match these filters.', 'text');
+      d.querySelector('#inv-card [data-clear]').click(); await sleep(50);
+      assert(d.querySelectorAll('#inv-card tbody tr').length === 25, 'not cleared');
+    });
+    await test('Global: every visible interactive element is at least 44 x 44 px', async () => {
+      const bad = [...d.querySelectorAll('button, select, input, a[href], [tabindex="0"]')]
+        .filter((el) => el.offsetParent && !el.closest('.sprite') && !el.classList.contains('bar') && !el.classList.contains('skip-link'))
+        .filter((el) => { const r = el.getBoundingClientRect(); return r.width < 44 || r.height < 44; })
+        .map((el) => `${el.tagName}.${el.className}`);
+      assert(!bad.length, bad.slice(0, 5).join(', '));
+    });
+    await test('Global: body text uses Inter', async () => {
+      assert(/Inter/.test(w.getComputedStyle(d.body).fontFamily), w.getComputedStyle(d.body).fontFamily);
+    });
+    await test('Global: logo in header at 40 px height', async () => {
+      assert(Math.round(d.querySelector('.brand img').getBoundingClientRect().height) === 40, 'height');
+    });
+
+    for (const width of [320, 375, 768, 1024, 1440]) {
+      await test(`Global: no horizontal page scroll at ${width}px`, async () => {
+        const g = await frame('../index.html', width, 700);
+        await ready(g.contentDocument);
+        await sleep(300);
+        const el = g.contentDocument.documentElement;
+        assert(el.scrollWidth <= el.clientWidth, `scrollWidth ${el.scrollWidth} > ${el.clientWidth}`);
+        g.remove();
+      });
+    }
+
+    await test('States: failed load shows error banner text and Retry button', async () => {
+      const g = await frame('../index.html?data=missing.json', 1024, 600);
+      const gd = g.contentDocument;
+      await until(() => !gd.getElementById('error-banner').hidden);
+      assert(gd.getElementById('error-text').textContent === "Couldn't load dashboard data.", gd.getElementById('error-text').textContent);
+      assert(gd.getElementById('retry-btn').textContent.trim() === 'Retry', 'retry');
+      g.remove();
+    });
+
+    f.remove();
+    document.getElementById('summary').textContent = `${pass} passed, ${fail} failed`;
+    document.title = `${fail ? 'FAIL' : 'PASS'} ${pass}/${pass + fail}`;
+  </script>
+</body>
+</html>

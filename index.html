@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kivo · Inventory & Logistics</title>
+  <meta name="description" content="Kivo inventory and logistics dashboard (mock data).">
+  <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9Z M4 7.5 12 12l8-4.5 M12 12v9"/></symbol>
+    <symbol id="i-dollar" viewBox="0 0 24 24"><path d="M12 3v18 M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 22 20H2Z M12 10v4.5 M12 17.2v.3"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 12h9"/></symbol>
+    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2.5 6h11v10h-11Z M13.5 9.5h4l3 3.5V16h-7 M6.5 18.5a1.5 1.5 0 1 0 0-.01 M16.5 18.5a1.5 1.5 0 1 0 0-.01"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2 M9.5 2.5h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M3.5 5.5h17v15h-17Z M3.5 10h17 M8 3v4 M16 3v4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6 6 18"/></symbol>
+    <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7 M4 4v4.5h4.5"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><path d="M3.5 5h17v14h-17Z M3.5 10h17 M3.5 14.5h17 M9.5 5v14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="#overview" aria-label="Kivo, go to overview">
+        <img src="assets/logo.svg" alt="Kivo" width="138" height="40">
+      </a>
+      <nav class="section-nav" aria-label="Sections">
+        <a href="#overview" class="section-nav__link" aria-current="true">Overview</a>
+        <a href="#inventory" class="section-nav__link">Inventory</a>
+        <a href="#shipments" class="section-nav__link">Shipments</a>
+      </nav>
+      <p class="data-asof">
+        <span id="data-asof-text">Data as of …</span>
+        <span class="badge badge--mock">Mock data</span>
+        <span class="badge badge--stale" id="stale-badge" hidden>Stale</span>
+      </p>
+      <div class="wh-switch">
+        <label for="wh-select">Warehouse</label>
+        <select id="wh-select">
+          <option value="ALL">All warehouses</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <div class="banner banner--error" id="error-banner" role="alert" hidden>
+    <svg class="icon" aria-hidden="true"><use href="#i-warn"/></svg>
+    <span id="error-text">Couldn't load dashboard data.</span>
+    <button type="button" class="btn btn--primary" id="retry-btn">
+      <svg class="icon" aria-hidden="true"><use href="#i-retry"/></svg>Retry
+    </button>
+  </div>
+
+  <main id="main" class="page">
+    <p class="visually-hidden" id="live" aria-live="polite"></p>
+
+    <section id="overview" class="section" aria-labelledby="overview-title">
+      <h1 id="overview-title" class="page-title">Inventory &amp; Logistics</h1>
+
+      <div class="alerts-strip" id="alerts-strip" hidden>
+        <button type="button" class="alerts-strip__item status-text--out" data-action="filter-out">
+          <svg class="icon" aria-hidden="true"><use href="#i-out"/></svg><span data-count="out">0</span>&nbsp;out of stock
+        </button>
+        <button type="button" class="alerts-strip__item status-text--low" data-action="filter-low">
+          <svg class="icon" aria-hidden="true"><use href="#i-warn"/></svg><span data-count="low">0</span>&nbsp;low
+        </button>
+        <button type="button" class="alerts-strip__item status-text--late" data-action="filter-late">
+          <svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><span data-count="late">0</span>&nbsp;shipments late
+        </button>
+      </div>
+
+      <ul class="kpis" id="kpis" aria-label="Key figures"></ul>
+
+      <div class="overview-grid">
+        <section class="card chart-card" aria-labelledby="chart-title">
+          <div class="card__head">
+            <h3 id="chart-title" class="card__title">Stock value</h3>
+            <div class="segmented" role="group" aria-label="Group stock value">
+              <button type="button" class="segmented__btn" data-chart-mode="category" aria-pressed="true">By category</button>
+              <button type="button" class="segmented__btn" data-chart-mode="warehouse" aria-pressed="false">By warehouse</button>
+            </div>
+          </div>
+          <div class="chart" id="chart"></div>
+          <div class="chart-table" id="chart-table" hidden></div>
+          <div class="chart-foot">
+            <p class="chart-summary" id="chart-summary"></p>
+            <button type="button" class="btn btn--secondary" id="chart-table-toggle" aria-pressed="false">
+              <svg class="icon" aria-hidden="true"><use href="#i-table"/></svg><span>Show as table</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="card alerts-panel" aria-labelledby="alerts-title">
+          <div class="card__head">
+            <h3 id="alerts-title" class="card__title">Low-stock alerts (<span id="alerts-count">0</span>)</h3>
+          </div>
+          <ul class="alerts-list" id="alerts-list"></ul>
+          <button type="button" class="btn btn--ghost" id="alerts-see-all">
+            See all in inventory<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </button>
+        </section>
+      </div>
+    </section>
+
+    <section id="inventory" class="section" aria-labelledby="inventory-title">
+      <h2 id="inventory-title" class="section__title">Inventory (<span id="inv-count">0</span>)</h2>
+      <div class="filters" role="search">
+        <div class="field field--search">
+          <label for="inv-search" class="visually-hidden">Search SKU or name</label>
+          <svg class="icon field__icon" aria-hidden="true"><use href="#i-search"/></svg>
+          <input id="inv-search" type="search" placeholder="Search SKU or name" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="inv-category">Category</label>
+          <select id="inv-category"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="inv-warehouse">Warehouse <span class="field__note" id="inv-wh-note" hidden>(set in header)</span></label>
+          <select id="inv-warehouse"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="inv-status">Status</label>
+          <select id="inv-status">
+            <option value="">All</option>
+            <option value="in">In stock</option>
+            <option value="low">Low</option>
+            <option value="out">Out</option>
+            <option value="lowout">Low + Out</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn--ghost" id="inv-clear" hidden>Clear filters</button>
+      </div>
+      <div class="card table-card" id="inv-card"></div>
+    </section>
+
+    <section id="shipments" class="section" aria-labelledby="shipments-title">
+      <h2 id="shipments-title" class="section__title">Shipments (<span id="sh-count">0</span>)</h2>
+      <div class="filters">
+        <div class="segmented" role="group" aria-label="Direction">
+          <button type="button" class="segmented__btn" data-direction="" aria-pressed="true">All</button>
+          <button type="button" class="segmented__btn" data-direction="inbound" aria-pressed="false">Inbound</button>
+          <button type="button" class="segmented__btn" data-direction="outbound" aria-pressed="false">Outbound</button>
+        </div>
+        <div class="field">
+          <label for="sh-status">Status</label>
+          <select id="sh-status">
+            <option value="">All</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="in_transit">In transit</option>
+            <option value="late">Late</option>
+            <option value="delivered">Delivered (last 30 days)</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn--ghost" id="sh-clear" hidden>Clear filters</button>
+      </div>
+      <div class="card table-card" id="sh-card"></div>
+    </section>
+  </main>
+
+  <dialog class="detail" id="detail" aria-labelledby="detail-title">
+    <div class="detail__head">
+      <h2 id="detail-title" class="detail__title"></h2>
+      <button type="button" class="btn btn--ghost" id="detail-close">
+        <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>Close
+      </button>
+    </div>
+    <div class="detail__body" id="detail-body"></div>
+  </dialog>
+</body>
+</html>

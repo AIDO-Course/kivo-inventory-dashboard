@@ -82,8 +82,8 @@ At a glance, it answers three questions:
 | KPI tiles per row | 2 (7 tiles → 4 rows, last tile spans 2 columns) | 4 (2 rows) | 7 (1 row; at 1024–1279 px: 4 + 3) |
 | Alerts strip | Full width, stacked | Full width | Full width |
 | Chart + Alerts panel | Stacked: chart, then alerts | Stacked | Side by side: chart 8 of 12 columns, Low-stock alerts 4 of 12 |
-| Inventory table | Card list (one card per SKU: name, SKU, status, qty / reorder point, warehouse) | Table with 6 columns (Supplier and Unit cost hidden; shown in the row-detail dialog) | Full table, 9 columns |
-| Shipments table | Card list | Table, 6 columns (Carrier hidden; in the row-detail dialog) | Full table, 8 columns |
+| Inventory table | Card list (one card per SKU: name, SKU, status, qty / reorder point, warehouse) | Table with 6 columns: Status, Product, SKU, Warehouse, Qty on hand, Reorder point (Category, Unit cost and Stock value hidden; shown in the row-detail dialog, with Supplier and Lead time) | Full table, 9 columns |
+| Shipments table | Card list | Table, 6 columns (Ship date and Carrier hidden; in the row-detail dialog) | Full table, 8 columns |
 | Long text | Product names truncate with an ellipsis after **1 line** in tables and **2 lines** in cards. The full name is in the `title` attribute and in the row-detail dialog. | Same | Same |
 
 "Nothing hidden": a column dropped at a smaller breakpoint is always reachable in the row-detail dialog (§6.7).
@@ -330,7 +330,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 ### 6.4 Filters (inventory table)
 - **Search:** text input, 44 px, minimum width 280 px (100% on phone), with a placeholder "Search SKU or name". It matches SKU or name case-insensitively, as a substring, with a 200 ms debounce.
 - **Category / Warehouse / Status:** native `<select>`s, 44 px, each with an "All" option.
-  - Status options: All, In stock, Low, Out.
+  - Status options: All, In stock, Low, Out, Low + Out (the last one is what "See all in inventory →" sets).
 - **"Clear filters":** a ghost button, shown only when at least one filter is active.
 - **Result count:** the table title shows the count, e.g. "Inventory (31 of 642)".
 
@@ -604,6 +604,7 @@ The mock data must behave like an **established business running since 2019**, n
   - `js/format.js`: `Intl.NumberFormat('en-US', {style:'currency', currency:'USD'})`, compact notation, and `Intl.DateTimeFormat`
   - `js/main.js`
 - **Charts:** hand-built inline SVG. No chart library.
+- **Test seam:** `js/data.js` accepts `?data=<file>.json` (a file name inside `data/` only) so `tests/tests.html` can simulate a failed load. It is not linked anywhere in the UI.
 - **File structure:**
   ```
   index.html
@@ -618,7 +619,7 @@ The mock data must behave like an **established business running since 2019**, n
 - **Favicon:** `assets/logo-icon.svg`. PWA install is Later (L4).
 - **Performance:**
   - first meaningful paint < 2 s on simulated 4G
-  - the JSON is fetched asynchronously after the shell renders, and is ≤ 6 MB uncompressed
+  - the JSON is fetched asynchronously after the shell renders, and is ≤ 8 MB uncompressed (about 7.5 MB for the §7.4 volume; GitHub Pages serves it gzip-compressed)
   - tables render only the current page (25 rows)
 - **Quality bar:**
   - 0 console errors or warnings
