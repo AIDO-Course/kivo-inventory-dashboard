@@ -55,7 +55,7 @@ const suppliers = [
 ];
 
 const carriers = ['Ridgeway Freight', 'BlueLine Logistics', 'Summit Express', 'Harbor & Pine Transport'];
-const carrierLate = { 'Ridgeway Freight': 0.07, 'BlueLine Logistics': 0.065, 'Summit Express': 0.06, 'Harbor & Pine Transport': 0.15 };
+const carrierLate = { 'Ridgeway Freight': 0.055, 'BlueLine Logistics': 0.05, 'Summit Express': 0.045, 'Harbor & Pine Transport': 0.14 };
 
 const cities = [
   'Dayton, OH', 'Cleveland, OH', 'Cincinnati, OH', 'Toledo, OH', 'Akron, OH', 'Indianapolis, IN', 'Fort Wayne, IN',

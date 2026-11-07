@@ -176,6 +176,16 @@ test('Data: every shipment line SKU exists; outbound origin stocks it', () => {
     }
   }
 });
+test('Data: lateness about 8% overall (7–9%), Harbor & Pine about 15% (13–17%), Dec–Jan about 14% (12–16%)', () => {
+  const del = data.shipments.filter((s) => s.status === 'delivered');
+  const rate = (a) => (a.filter((s) => s.delivered_at > s.eta).length / a.length) * 100;
+  const all = rate(del);
+  const harbor = rate(del.filter((s) => s.carrier === 'Harbor & Pine Transport'));
+  const winter = rate(del.filter((s) => /-(12|01)-/.test(s.ship_date)));
+  ok(all >= 7 && all <= 9, `overall ${all.toFixed(1)}%`);
+  ok(harbor >= 13 && harbor <= 17, `harbor ${harbor.toFixed(1)}%`);
+  ok(winter >= 12 && winter <= 16, `Dec-Jan ${winter.toFixed(1)}%`);
+});
 test('Data: no real brand names (whole word)', () => {
   const text = readFileSync(dataPath, 'utf8');
   const brands = ['HP', 'Canon', 'Epson', 'Brother', 'Dell', 'Lenovo', 'Logitech', 'Apple', 'Samsung', 'Staples', 'FedEx', 'UPS', 'USPS', 'DHL', 'Microsoft', 'Cisco', 'Netgear', 'Xerox', 'Avery', 'Sharpie', 'Post-it', 'Herman Miller', 'Steelcase', 'IKEA'];
