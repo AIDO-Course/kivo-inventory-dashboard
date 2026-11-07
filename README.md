@@ -84,3 +84,4 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `CLAUDE.md` | Loads Practice.md and the project skills for Claude Code |
 | `.claude/skills/` | Project skills (ui-ux-design) |
 | `dashboard-project-starter.md` | The original course brief |
+| `SESSION-EXPORT.md` | Full export of the Claude Code session that built this project |
