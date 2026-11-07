@@ -6,6 +6,8 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 
 **Status:** v1. All numbers are mock data, frozen at Nov 7, 2026, 8:00 AM ET. There is no backend.
 
+**Live:** https://aido-course.github.io/kivo-inventory-dashboard/
+
 **Spec:** [SPEC.md](SPEC.md) is the source of truth. The dashboard is built from it.
 
 ## Features (v1)
@@ -29,7 +31,7 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 
 ## Live site
 
-GitHub Pages: not published yet. The link will be added here when Pages is enabled.
+**Live:** https://aido-course.github.io/kivo-inventory-dashboard/ (GitHub Pages, from the `main` branch root)
 
 ## Run it locally
 
