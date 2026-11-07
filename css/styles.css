@@ -492,8 +492,8 @@
   .field label { font-size: var(--fs-label); font-weight: 500; color: var(--ink-600); }
   .field__note { font-weight: 400; font-size: var(--fs-caption); }
   .field--search { position: relative; flex: 1 1 280px; max-width: 420px; }
-  .field--search input { width: 100%; min-width: 0; padding-inline-start: 40px; }
-  .field__icon { position: absolute; inset-inline-start: var(--space-3); inset-block-end: 12px; color: var(--ink-600); }
+  .field--search input { width: 100%; min-width: 0; padding-inline-start: calc(var(--space-3) + var(--icon-inline) + var(--space-2)); }
+  .field__icon { position: absolute; inset-inline-start: var(--space-3); inset-block-end: var(--space-3); color: var(--ink-600); }
   @media (max-width: 599px) {
     .filters > .field, .filters > .segmented { flex: 1 1 100%; max-width: none; }
     .filters select { width: 100%; }
