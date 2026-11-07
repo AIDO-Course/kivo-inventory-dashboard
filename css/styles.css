@@ -429,7 +429,7 @@
   .kpi__value { font-size: var(--fs-kpi); font-weight: 700; line-height: 1.1; color: var(--ink-900); }
   .kpi__delta { font-size: var(--fs-caption); color: var(--ink-600); }
   .delta--up { color: var(--green-700); }
-  .delta--down { color: var(--red-700); }
+  .delta--down { color: var(--ink-900); }
   .delta--neutral { color: var(--ink-600); }
   @container (max-width: 160px) { .kpi__value { font-size: 28px; } }
 

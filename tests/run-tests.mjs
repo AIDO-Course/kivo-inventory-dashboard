@@ -211,7 +211,7 @@ test('Global: only the 17 palette colours (+ ink-900 rgba shadows) in CSS, SVG, 
 test('Global: red tokens used only for out / late / error (CSS)', () => {
   const css = readFileSync(join(root, 'css/styles.css'), 'utf8');
   const lines = css.split('\n').filter((l) => /var\(--red-(700|800|50)\)/.test(l));
-  for (const l of lines) ok(/out|late|error|delta--down|eta-late|btn--danger/.test(l), `red used in: ${l.trim()}`);
+  for (const l of lines) ok(/out|late|error|eta-late|btn--danger/.test(l), `red used in: ${l.trim()}`);
 });
 test('Global: no frameworks (React, Angular, Vue, Svelte, jQuery, Bootstrap, Tailwind), no package.json build', () => {
   for (const file of sourceFiles) {

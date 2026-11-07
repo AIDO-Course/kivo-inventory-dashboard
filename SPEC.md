@@ -153,7 +153,7 @@ The two brand colours come from the logo. Kivo Teal is the main colour and Crate
 | `--indigo-600` | `#4A4FC4` | Chart series 3 only (third warehouse, third category). |
 | `--green-700` | `#24693F` | "In stock", "Delivered", "On time" status text/icon. Positive trend. |
 | `--green-50` | `#E6F2EA` | Positive status badge background. |
-| `--red-700` | `#B42318` | "Out of stock", "Late" status text/icon. Error banner text. Negative trend. |
+| `--red-700` | `#B42318` | "Out of stock", "Late" status text/icon. Error banner text, and the late ETA text in the shipments table. |
 | `--red-800` | `#8F1D13` | Danger button hover (reserved; there is no danger action in v1). |
 | `--red-50` | `#FDECEA` | Negative status badge background, error banner background. |
 | `--ink-900` | `#14262B` | Body text, headings, KPI values. |
@@ -188,7 +188,7 @@ Chart series for 4+ categories use, in order: `--teal-700`, `--amber-500`, `--in
 | Green 700 `#24693F` | Green 50 `#E6F2EA` | **5.76 : 1** | Pass | "In stock"/"Delivered" badge |
 | Green 700 | White | **6.63 : 1** | Pass | Positive trend |
 | Red 700 `#B42318` | Red 50 `#FDECEA` | **5.75 : 1** | Pass | "Out"/"Late" badge, error banner |
-| Red 700 | White | **6.57 : 1** | Pass | Negative trend |
+| Red 700 | White | **6.57 : 1** | Pass | Late ETA text in the shipments table |
 | Indigo 600 `#4A4FC4` | White | **6.55 : 1** | Pass | Legend label (if coloured) |
 | ~~White~~ | ~~Amber 500~~ | 2.05 : 1 | **Fail. Forbidden.** | Never put white text on amber |
 | ~~Amber 500~~ | ~~White~~ | 2.05 : 1 | **Fail. Forbidden.** | Never use amber as text |
@@ -324,7 +324,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 | 6 | Late | `14` | "open shipments past ETA" | ⏱ in `--red-700` |
 | 7 | On-time % | `91.4%` (1 decimal) | "▼ 1.2 pts vs prior 30 days" | check |
 
-- **Delta colours:** ▲ = `--green-700` and ▼ = `--red-700`. The arrow and sign are always shown. For stock value, no colour judgement is made: the delta is `--ink-600` with the arrow only.
+- **Delta colours:** ▲ = `--green-700` and ▼ = `--ink-900` (never red: red is reserved for Out, Late and errors, §5.3). The arrow and sign are always shown. For stock value, no colour judgement is made: the delta is `--ink-600` with the arrow only.
 - **Clicking:** tiles 3, 4 and 6 are buttons (whole tile, `cursor: pointer`, hover border `--teal-700`) that apply the same filter as the alerts strip. The other tiles are not interactive and get no hover state.
 
 ### 6.4 Filters (inventory table)
