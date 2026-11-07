@@ -213,6 +213,10 @@ test('Global: red tokens used only for out / late / error (CSS)', () => {
   const lines = css.split('\n').filter((l) => /var\(--red-(700|800|50)\)/.test(l));
   for (const l of lines) ok(/out|late|error|eta-late|btn--danger/.test(l), `red used in: ${l.trim()}`);
 });
+test('Global: no text smaller than 13 px in CSS (SPEC §5.4 minimum caption size)', () => {
+  const css = readFileSync(join(root, 'css/styles.css'), 'utf8');
+  for (const m of css.matchAll(/font-size:\s*(\d+)px/g)) ok(Number(m[1]) >= 13, `font-size ${m[1]}px`);
+});
 test('Global: no frameworks (React, Angular, Vue, Svelte, jQuery, Bootstrap, Tailwind), no package.json build', () => {
   for (const file of sourceFiles) {
     const txt = readFileSync(file, 'utf8');

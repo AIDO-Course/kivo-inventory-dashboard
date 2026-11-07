@@ -534,7 +534,7 @@
   }
   th.num .sort-btn { justify-content: flex-end; }
   .sort-btn:hover { color: var(--teal-700); }
-  .sort-btn__arrow { font-size: 12px; min-width: 12px; }
+  .sort-btn__arrow { font-size: var(--fs-caption); min-width: var(--space-3); }
   .data-table td {
     height: var(--row-h);
     padding: 0 var(--space-3);
