@@ -285,18 +285,29 @@ function wire() {
   document.querySelectorAll('.section-nav__link, .brand').forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault();
     $(a.getAttribute('href').slice(1)).scrollIntoView();
+    // Highlight the clicked link at once; the observer below keeps it in sync while scrolling.
+    if (a.classList.contains('section-nav__link')) {
+      document.querySelectorAll('.section-nav__link').forEach((l) => (l === a ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
+    }
   }));
 
   // Active section link
   const links = [...document.querySelectorAll('.section-nav__link')];
-  const io = new IntersectionObserver((entries) => {
-    for (const en of entries) {
-      if (en.isIntersecting) {
-        links.forEach((l) => (l.getAttribute('href') === `#${en.target.id}` ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
-      }
-    }
-  }, { rootMargin: '-40% 0px -55% 0px' });
+  // The weather card sits inside Overview, so track every target in view and let the more
+  // specific one (Warehouse weather) win over its parent section.
+  const targets = ['overview', 'warehouse-weather', 'inventory', 'shipments'];
+  const visible = new Set();
+  const onSeen = (entries) => {
+    for (const en of entries) en.isIntersecting ? visible.add(en.target.id) : visible.delete(en.target.id);
+    const active = visible.has('warehouse-weather') ? 'warehouse-weather' : targets.find((id) => visible.has(id));
+    if (!active) return;
+    links.forEach((l) => (l.getAttribute('href') === `#${active}` ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
+  };
+  // Sections: active when they cross the middle band. The weather card is short, so it counts
+  // as active whenever part of it is in the top half of the screen (below the sticky header).
+  const io = new IntersectionObserver(onSeen, { rootMargin: '-40% 0px -55% 0px' });
   ['overview', 'inventory', 'shipments'].forEach((id) => io.observe($(id)));
+  new IntersectionObserver(onSeen, { rootMargin: '-88px 0px -50% 0px' }).observe($('warehouse-weather'));
 
   initDialog();
 }

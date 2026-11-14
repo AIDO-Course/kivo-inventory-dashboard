@@ -20,7 +20,7 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 - **Stock value chart:** by category or by warehouse, in hand-built SVG, with a click/keyboard tooltip, a text summary and a "Show as table" view.
 - **Row-detail dialog:** every field of a SKU or shipment, including the columns hidden on smaller screens.
 - **"Data as of" caption** with a *Live · Airtable* badge, plus loading, empty and error states.
-- **Warehouse weather** (bonus, external API): current weather for Columbus, Reno and Atlanta from OpenWeatherMap, with a "may delay shipments" warning for storms, snow, heavy rain or strong wind.
+- **Warehouse weather** (bonus, external API): current weather for Columbus, Reno and Atlanta from OpenWeatherMap, with a "may delay shipments" warning for storms, snow, heavy rain or strong wind. The header menu has a **Warehouse weather** link that jumps to it.
 - **Responsive and accessible:** phone, tablet and desktop. All text meets AA contrast, touch targets are at least 44 px, keyboard navigation works, and reduced motion is respected.
 
 ## Not built yet

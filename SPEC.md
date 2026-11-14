@@ -248,7 +248,7 @@ Hand-made inline SVG icons in a single `<svg>` sprite, 24 × 24 viewBox, 2 px st
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ [kivo logo 40px]  Overview · Inventory · Shipments    Data as of Nov 7, 2026, 8:00 AM ET │
+│ [kivo logo 40px]  Overview · Inventory · Shipments · Warehouse weather   Data as of … ET │
 │                                                  · Live · Airtable   [Warehouse: All ▾] │  ← Header, white, sticky, 72px
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ ⛔ 9 SKUs out of stock · ⚠ 31 low · ⏱ 14 shipments late          [View alerts →]     │  ← Alerts strip (only if any)
@@ -295,7 +295,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 - **Look:** White background, 72 px tall (desktop), with a 1 px `--line-200` bottom border, sticky at the top.
 - **Contents, left to right:**
   - logo (40 px)
-  - section links "Overview · Inventory · Shipments" (anchor links, 44 px tall, 16 px, `--ink-600`; the active one is `--teal-700` with a 3 px `--teal-700` bottom bar, set by IntersectionObserver)
+  - section links "Overview · Inventory · Shipments · Warehouse weather" (anchor links; "Warehouse weather" jumps to the §7.6 card, 44 px tall, 16 px, `--ink-600`; the active one is `--teal-700` with a 3 px `--teal-700` bottom bar, set by IntersectionObserver)
   - "Data as of …" caption (13 px, `--ink-600`), with a "Live · Airtable" badge (`--teal-50` background, `--teal-700` text)
   - warehouse switcher: a native `<select>`, 44 px tall, minimum width 200 px, label "Warehouse"
 - **Phone:** logo and data caption on row 1, switcher full width on row 2, and section tabs in a sticky bar on row 3.

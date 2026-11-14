@@ -212,6 +212,19 @@
       }
       assert(d.querySelectorAll('.kpi').length === 7, 'dashboard must work either way');
     });
+    await test('§7.6 "Warehouse weather" menu link scrolls to the weather card and becomes the active link', async () => {
+      const link = d.querySelector('.section-nav__link[href="#warehouse-weather"]');
+      assert(link && link.textContent.trim() === 'Warehouse weather', 'no menu link');
+      d.documentElement.style.scrollBehavior = 'auto'; // test the jump, not the smooth animation
+      link.click();
+      await sleep(400);
+      const top = d.getElementById('warehouse-weather').getBoundingClientRect().top;
+      assert(top >= 0 && top < w.innerHeight / 2, `card not scrolled into view (top ${Math.round(top)})`);
+      assert(link.getAttribute('aria-current') === 'true', 'link not active');
+      d.querySelector('.section-nav__link[href="#overview"]').click();
+      await sleep(400);
+      d.documentElement.style.scrollBehavior = '';
+    });
     await test('Global: every visible interactive element is at least 44 x 44 px', async () => {
       const bad = [...d.querySelectorAll('button, select, input, a[href], [tabindex="0"]')]
         .filter((el) => el.offsetParent && !el.closest('.sprite') && !el.classList.contains('bar') && !el.classList.contains('skip-link'))

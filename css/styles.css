@@ -474,6 +474,7 @@
   .alerts-panel { display: grid; }
   .alerts-panel > .btn { justify-self: start; margin: var(--space-2) var(--space-4) var(--space-4); }
   /* Warehouse weather (SPEC §7.6) */
+  .weather-card { scroll-margin-top: 88px; }
   .weather__source { font-size: var(--fs-caption); color: var(--ink-600); }
   .weather__empty { padding: 0 var(--space-4) var(--space-4); font-size: var(--fs-label); color: var(--ink-600); }
   .weather-list {
