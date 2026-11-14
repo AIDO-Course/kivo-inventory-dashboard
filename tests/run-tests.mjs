@@ -338,5 +338,12 @@ test('§5.6 icons are the Lucide set: every sprite icon uses 24 × 24 and Lucide
   ok(/@media \(min-width: 3840px\) \{ :root \{ --zoom: 1\.6/.test(readFileSync(join(root, 'css/styles.css'), 'utf8')), '4K zoom');
 });
 
+test('README: every image it shows exists in the repo (screenshots and logo)', () => {
+  const md = readFileSync(join(root, 'README.md'), 'utf8');
+  const srcs = [...md.matchAll(/!\[[^\]]*\]\(([^)]+)\)|<img src="([^"]+)"/g)].map((m) => m[1] || m[2]);
+  ok(srcs.filter((x) => x.startsWith('docs/screenshots/')).length >= 5, 'at least 5 screenshots');
+  for (const src of srcs) ok(existsSync(join(root, src)), `missing ${src}`);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

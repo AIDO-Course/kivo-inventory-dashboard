@@ -24,6 +24,20 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 - **Modern app layout:** a deep-teal sidebar switches between four views (Overview, Inventory, Shipments, Warehouse weather), one at a time, with no page scrolling. The view is kept in the URL (`#view=shipments`) and Back works. On phones the sidebar becomes a bottom tab bar; on 2K and 4K screens everything scales up. Icons are Lucide.
 - **Responsive and accessible:** phone, tablet and desktop. All text meets AA contrast, touch targets are at least 44 px, keyboard navigation works, and reduced motion is respected.
 
+## Screenshots
+
+Real data from the Airtable base, desktop at 1440 × 900.
+
+| Overview | Inventory |
+|---|---|
+| ![Overview: alerts, 7 KPI tiles, stock value chart and low-stock alerts](docs/screenshots/overview.png) | ![Inventory: search, filters and the paged table](docs/screenshots/inventory.png) |
+| **Shipments** | **Warehouse weather** |
+| ![Shipments: late ones first with days late](docs/screenshots/shipments.png) | ![Warehouse weather from OpenWeatherMap](docs/screenshots/weather.png) |
+
+On a phone (375 px), the sidebar becomes a bottom tab bar:
+
+<img src="docs/screenshots/phone-overview.png" alt="Overview on a phone with the bottom tab bar" width="300">
+
 ## Not built yet
 
 - 30-day stock movement trend (Should, v1.1)
@@ -158,6 +172,7 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `.env.example` | Template for `.env` (names only, no secret values) |
 | `tests/run-tests.mjs` | Node tests |
 | `tests/tests.html` | Browser tests |
+| `docs/screenshots/` | Screenshots of the four views and the phone layout, shown in this README |
 | `assets/` | Kivo logo (`logo.svg`, `logo-light.svg` for the dark sidebar, `logo-icon.svg` favicon, `logo.png`) |
 | `SPEC.md` | The project spec |
 | `Practice.md` | How we work: 4-step workflow and git rules |
