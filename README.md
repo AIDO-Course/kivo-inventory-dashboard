@@ -6,7 +6,7 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 
 **Status:** v1 + Exercise 4. The dashboard reads its data **only from an Airtable database**, through a small local server (`node server.mjs`). There is no static data file. GitHub Pages can't run the server, so the live link shows the load-error state; run it locally to see the data. All numbers are frozen at Nov 7, 2026, 8:00 AM ET.
 
-**Live:** https://aido-course.github.io/kivo-inventory-dashboard/
+**Live:** https://aido-course.github.io/kivo-inventory-dashboard/ (no data there: see [How to run it](#how-to-run-it-data-from-airtable))
 
 **Spec:** [SPEC.md](SPEC.md) is the source of truth. The dashboard is built from it.
 
@@ -31,33 +31,89 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 
 ## Live site
 
-**Live:** https://aido-course.github.io/kivo-inventory-dashboard/ (GitHub Pages, from the `main` branch root)
+https://aido-course.github.io/kivo-inventory-dashboard/ (GitHub Pages, from `main`). Pages only hosts static files and can't run `server.mjs`, so this link shows the "Couldn't load dashboard data" state. To see the data, run it locally (below).
 
-## Data from Airtable (Exercise 4)
+## How to run it (data from Airtable)
 
-The data lives in an Airtable base called **Kivo** (tables `Meta`, `Warehouses`, `Products`, `Shipments`, `StockHistory`). A small Node server reads it with the Airtable API and gives the dashboard the same JSON shape it always used. The token stays on the server. Details: [SPEC.md §7.5](SPEC.md).
+The data lives in an Airtable base called **Kivo** (tables `Meta`, `Warehouses`, `Products`, `Shipments`, `StockHistory`). A small Node server reads it with the Airtable API and serves it to the dashboard at `/api/data`. The token stays on the server and never reaches the browser. Details: [SPEC.md §7.5](SPEC.md).
 
 ```
 browser ──GET /api/data──▶ server.mjs ──Airtable API + token from .env──▶ Airtable base "Kivo"
 ```
 
-1. In Airtable, create an empty base named `Kivo`, and a personal access token (https://airtable.com/create/tokens) with access to that base only and the scopes `data.records:read`, `data.records:write`, `schema.bases:read` and `schema.bases:write`.
-2. Copy `.env.example` to `.env` and fill in `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` (the `app…` part of the base URL). `.env` is git-ignored and never committed.
-3. Load the data once (safe to run again, it upserts and never doubles records):
+### What you need
 
-   ```bash
-   node scripts/seed-airtable.mjs
-   ```
+- **Node.js 18 or newer** (`node --version`). No `npm install`: there are no dependencies.
+- **An Airtable account** (the free plan is enough).
 
-4. Start the server and open http://localhost:8765:
+### 1. Get the code
 
-   ```bash
-   node server.mjs
-   ```
+```bash
+git clone https://github.com/AIDO-Course/kivo-inventory-dashboard.git
+```
 
-The free Airtable plan allows about 1,000 records per base, so the base holds a subset: 250 products (all low and out-of-stock ones included), 700 shipments (all in transit, the next 100 scheduled, and a sample of recent deliveries) and 37 monthly history snapshots.
+```bash
+cd kivo-inventory-dashboard
+```
 
-The seed takes its input from `scripts/generate-data.js` (seeded, so it is the same every time). It prints JSON and writes no file.
+All the commands below run from this folder. If you see `Cannot find module ...server.mjs`, you are in the wrong folder.
+
+### 2. Create the base and the token in Airtable
+
+1. On https://airtable.com, click **Create** → **Build an app on your own** (or **Blank base**) and name the base **Kivo**. Leave it empty; the seed creates the tables.
+2. Copy the base ID from the address bar: the part that starts with `app`, e.g. `https://airtable.com/`**`appXXXXXXXXXXXXXX`**`/tbl…`.
+3. Go to https://airtable.com/create/tokens → **Create token**:
+   - Name: `kivo-dashboard`
+   - Scopes: `data.records:read`, `data.records:write`, `schema.bases:read`, `schema.bases:write`
+   - Access: the **Kivo** base only
+4. Copy the token (it starts with `pat` and is shown only once). Treat it like a password: never put it in code, a chat or a screenshot.
+
+### 3. Put the token in `.env`
+
+Copy `.env.example` to a new file named `.env` in the project folder and fill in both values:
+
+```
+AIRTABLE_TOKEN=pat...
+AIRTABLE_BASE_ID=app...
+```
+
+`.env` is in `.gitignore`, so it is never committed. (If you paste the whole base URL, the scripts still pick out the `app…` ID.)
+
+### 4. Load the data into Airtable (once)
+
+```bash
+node scripts/seed-airtable.mjs
+```
+
+It creates the five tables and prints, for each one, how many records were sent and how many are now in Airtable. Every line should say `OK`, with **991** records in total. It is safe to run again: it updates existing records and removes stale ones, so nothing is doubled.
+
+### 5. Start the server
+
+```bash
+node server.mjs
+```
+
+You should see `Kivo dashboard on http://localhost:8765 (data from Airtable base app…)`. Open **http://localhost:8765**. Keep this terminal open while you use the dashboard; press `Ctrl+C` to stop it. If port 8765 is busy, start it on another port: `PORT=8080 node server.mjs` (PowerShell: `$env:PORT=8080; node server.mjs`).
+
+### 6. Check that the data comes from Airtable
+
+- The header badge says **Live · Airtable** and the **SKUs** tile shows **250**, the number of records in the Products table.
+- http://localhost:8765/api/data shows the raw JSON the server built from Airtable (`"source":"airtable"`).
+- Change a product's `qty_CMH` to `0` in Airtable, wait about a minute (the server reads Airtable at most once a minute) and refresh: the **Out of stock** count goes up by one.
+
+### If something goes wrong
+
+| What you see | Why | Fix |
+|---|---|---|
+| `Cannot find module '...server.mjs'` | The command ran outside the project folder | `cd` into the project folder first |
+| `Set AIRTABLE_TOKEN and AIRTABLE_BASE_ID in .env` | `.env` is missing or a value is empty | Create `.env` from `.env.example` (step 3) |
+| `Airtable ... -> 401` or `403` | Wrong token, or missing scopes | Check the token and its scopes (step 2) |
+| `Airtable ... -> 404 NOT_FOUND` | Wrong base ID, or the token has no access to the base | Fix `AIRTABLE_BASE_ID`; add the Kivo base to the token's access list |
+| Page says "Couldn't load dashboard data" | The server is not running, or it can't read Airtable | Start `node server.mjs` and read the error in its terminal |
+
+### About the data
+
+The free Airtable plan allows about 1,000 records per base, so the base holds a subset: 250 products (all low and out-of-stock ones included), 700 shipments (all in transit, the next 100 scheduled, and a sample of recent deliveries) and 37 monthly history snapshots. The seed takes its input from `scripts/generate-data.js` (seeded, so it is the same every time). It prints JSON and writes no file.
 
 ## Tests
 
