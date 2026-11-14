@@ -4,7 +4,7 @@
 
 A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of office supplies and electronics with warehouses in Columbus OH, Reno NV and Atlanta GA. It answers three questions at a glance: what is about to run out, which shipments are late, and how much stock value Kivo holds and where. It is a read-only decision aid for the operations manager, warehouse supervisors and buyers.
 
-**Status:** v1. All numbers are mock data, frozen at Nov 7, 2026, 8:00 AM ET. There is no backend.
+**Status:** v1 + Exercise 4. Run locally with `node server.mjs`, the dashboard reads its data from an **Airtable** database (badge: *Live · Airtable*). On GitHub Pages there is no server, so it falls back to the mock JSON (badge: *Mock data*). All numbers are frozen at Nov 7, 2026, 8:00 AM ET.
 
 **Live:** https://aido-course.github.io/kivo-inventory-dashboard/
 
@@ -33,7 +33,31 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 
 **Live:** https://aido-course.github.io/kivo-inventory-dashboard/ (GitHub Pages, from the `main` branch root)
 
-## Run it locally
+## Data from Airtable (Exercise 4)
+
+The data lives in an Airtable base called **Kivo** (tables `Meta`, `Warehouses`, `Products`, `Shipments`, `StockHistory`). A small Node server reads it with the Airtable API and gives the dashboard the same JSON shape it always used. The token stays on the server. Details: [SPEC.md §7.5](SPEC.md).
+
+```
+browser ──GET /api/data──▶ server.mjs ──Airtable API + token from .env──▶ Airtable base "Kivo"
+```
+
+1. In Airtable, create an empty base named `Kivo`, and a personal access token (https://airtable.com/create/tokens) with access to that base only and the scopes `data.records:read`, `data.records:write`, `schema.bases:read` and `schema.bases:write`.
+2. Copy `.env.example` to `.env` and fill in `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` (the `app…` part of the base URL). `.env` is git-ignored and never committed.
+3. Load the data once (safe to run again, it upserts and never doubles records):
+
+   ```bash
+   node scripts/seed-airtable.mjs
+   ```
+
+4. Start the server and open http://localhost:8765:
+
+   ```bash
+   node server.mjs
+   ```
+
+The free Airtable plan allows about 1,000 records per base, so the base holds a subset: 250 products (all low and out-of-stock ones included), 700 shipments (open ones first) and 37 monthly history snapshots.
+
+## Run it locally (mock data only)
 
 ES modules don't load from `file://`, so serve the folder:
 
@@ -66,7 +90,8 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `index.html` | The single page: header, overview, inventory, shipments, dialog |
 | `css/styles.css` | All styles, in `@layer`s, with every design token as a CSS variable |
 | `js/main.js` | Entry point: loads data, wires controls, renders on state change |
-| `js/data.js` | Fetches and validates `data/mock-data.json` |
+| `js/data.js` | Loads data from `api/data` (Airtable), falling back to `data/mock-data.json`, and validates it |
+| `js/airtable-map.js` | Converts the data set to Airtable records and back; picks the free-plan subset |
 | `js/state.js` | App state with subscribe/notify, and the `#wh=` URL hash |
 | `js/metrics.js` | Pure functions for every metric formula in SPEC.md §7.1 |
 | `js/kpis.js` | KPI tiles and count-up |
@@ -76,6 +101,10 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `js/format.js` | `Intl` number, currency and date formatting |
 | `data/mock-data.json` | Generated mock data (3 years of shipments, 642 products) |
 | `scripts/generate-data.js` | Seeded mock data generator (Node, no dependencies) |
+| `scripts/seed-airtable.mjs` | Creates the Airtable tables and upserts the data subset |
+| `scripts/airtable.mjs` | Tiny Airtable API client; reads the token from `.env` |
+| `server.mjs` | Local server: serves the site and `GET /api/data` from Airtable |
+| `.env.example` | Template for `.env` (names only, no secret values) |
 | `tests/run-tests.mjs` | Node tests |
 | `tests/tests.html` | Browser tests |
 | `assets/` | Kivo logo (`logo.svg`, `logo-icon.svg` favicon, `logo.png`) |

@@ -52,6 +52,7 @@ function init(data) {
   invAll = inventoryRows(data);
   shAll = shipmentRows(data);
   $('data-asof-text').textContent = `Data as of ${f.asOf(data.meta.generated_at)}`;
+  $('source-badge').textContent = data.meta.source === 'airtable' ? 'Live · Airtable' : 'Mock data';
 
   const whSel = $('wh-select');
   const invWh = $('inv-warehouse');
