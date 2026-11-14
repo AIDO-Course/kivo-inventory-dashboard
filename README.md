@@ -21,7 +21,7 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 - **Row-detail dialog:** every field of a SKU or shipment, including the columns hidden on smaller screens.
 - **"Data as of" caption** with a *Live · Airtable* badge, plus loading, empty and error states.
 - **Warehouse weather** (bonus, external API): current weather for Columbus, Reno and Atlanta from OpenWeatherMap, with a "may delay shipments" warning for storms, snow, heavy rain or strong wind. It has its own **Warehouse weather** view in the sidebar.
-- **Modern app layout:** a deep-teal sidebar switches between four views (Overview, Inventory, Shipments, Warehouse weather), one at a time, with no page scrolling. The view is kept in the URL (`#view=shipments`) and Back works. On phones the sidebar becomes a bottom tab bar.
+- **Modern app layout:** a deep-teal sidebar switches between four views (Overview, Inventory, Shipments, Warehouse weather), one at a time, with no page scrolling. The view is kept in the URL (`#view=shipments`) and Back works. On phones the sidebar becomes a bottom tab bar; on 2K and 4K screens everything scales up. Icons are Lucide.
 - **Responsive and accessible:** phone, tablet and desktop. All text meets AA contrast, touch targets are at least 44 px, keyboard navigation works, and reduced motion is respected.
 
 ## Not built yet

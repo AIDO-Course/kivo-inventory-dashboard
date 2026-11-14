@@ -270,7 +270,7 @@
       assert(img && Math.round(img.getBoundingClientRect().height) === 36, 'height');
     });
 
-    for (const width of [320, 375, 768, 1024, 1440]) {
+    for (const width of [320, 375, 768, 1024, 1440, 1920, 2560, 3840]) {
       await test(`Global: no horizontal page scroll at ${width}px`, async () => {
         const g = await frame('../index.html', width, 700);
         await ready(g.contentDocument);
@@ -281,6 +281,16 @@
       });
     }
 
+    await test('§3 at 3840 px (4K) the app scales up ×1.6 and still fills the screen without page scroll', async () => {
+      const g = await frame('../index.html', 3840, 2160);
+      await ready(g.contentDocument);
+      await sleep(300);
+      const gd = g.contentDocument, gw = g.contentWindow;
+      assert(Math.abs(parseFloat(gw.getComputedStyle(gd.querySelector('.app')).zoom) - 1.6) < 0.01, 'zoom');
+      const el = gd.documentElement;
+      assert(el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth, `scrolls: ${el.scrollWidth}x${el.scrollHeight}`);
+      g.remove();
+    });
     await test('States: failed load shows error banner text and Retry button', async () => {
       const g = await frame('../index.html?api=missing', 1024, 600);
       const gd = g.contentDocument;

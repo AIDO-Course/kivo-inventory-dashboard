@@ -69,7 +69,7 @@ At a glance, it answers three questions:
   - The design must still be polished, professional and modern.
 - **Approach:** desktop-first. The primary target is 1440 × 900. It is also supported on tablet (iPad-class, 768–1023 px) and phone (360–599 px).
 - **Browsers:** latest 2 versions of Chrome, Edge, Firefox and Safari.
-- **Breakpoints:** `< 600 px` phone · `600–1023 px` tablet · `≥ 1024 px` desktop. There is **no horizontal page scroll anywhere from 320 px to 1440 px**. Wide tables scroll inside their own card, never the page.
+- **Breakpoints:** `< 600 px` phone · `600–1023 px` tablet · `≥ 1024 px` desktop. There is **no horizontal page scroll anywhere from 320 px to 3840 px (4K)**. From 1920 px the content width grows to 1680 px; from 2560 px the whole app scales ×1.25 and from 3840 px ×1.6, so the layout stays the same and text stays readable. Wide tables scroll inside their own card, never the page.
 
 ### Responsive behaviour
 
@@ -244,7 +244,7 @@ Nothing is smaller than 13 px. Sizes use `clamp()` between the phone and desktop
 
 ### 5.6 Icons
 
-Hand-made inline SVG icons in a single `<svg>` sprite, 24 × 24 viewBox, 2 px stroke, `currentColor`. There are no icon fonts and no external icon CDN. Every icon has a visible text label. Decorative icons get `aria-hidden="true"`.
+**Lucide** icons (lucide.dev, ISC licence), copied inline into a single `<svg>` sprite: 24 × 24 viewBox, 2 px stroke, round caps and joins, `currentColor`, vertically centred with their label. There are no icon fonts and no external icon CDN. Every icon has a visible text label. Decorative icons get `aria-hidden="true"`.
 
 ### 5.7 Main screen layout (desktop, 1440 px)
 

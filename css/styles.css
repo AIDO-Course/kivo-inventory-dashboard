@@ -83,6 +83,11 @@
   @media (min-width: 1024px) {
     :root { --page-pad: var(--space-6); --row-h: 48px; }
   }
+  /* Large and 4K screens (SPEC §3): wider content, then the whole app scales up so text
+     stays readable at a distance. The layout itself does not change. */
+  @media (min-width: 1920px) { :root { --max-w: 1680px; --page-pad: var(--space-7); } }
+  @media (min-width: 2560px) { :root { --zoom: 1.25; } }
+  @media (min-width: 3840px) { :root { --zoom: 1.6; } }
 }
 
 @layer layout {
@@ -104,6 +109,9 @@
     grid-template-rows: minmax(0, 1fr) auto;
     height: 100vh;
     height: 100dvh;
+  }
+  @supports (zoom: 1) {
+    .app { zoom: var(--zoom, 1); height: calc(100dvh / var(--zoom, 1)); }
   }
   .workspace {
     display: grid;
@@ -201,6 +209,7 @@
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
+    vertical-align: middle;
   }
 
   .skip-link {
