@@ -1,6 +1,6 @@
 // Entry point: loads data, wires controls, renders views on state change.
 import { loadData } from './data.js';
-import { state, update, subscribe, defaultInv, defaultSh, readHashWarehouse, writeHashWarehouse } from './state.js';
+import { state, update, subscribe, defaultInv, defaultSh, readHashWarehouse, writeHashWarehouse, readHashView, writeHashView } from './state.js';
 import { ALL, lowStockAlerts, indexProducts, isOpen } from './metrics.js';
 import { renderKpis, renderKpiSkeleton } from './kpis.js';
 import { chartRows, renderChart, renderChartTable, summaryText, escapeXml as esc } from './chart.js';
@@ -68,11 +68,22 @@ function init(data) {
 
   const wh = readHashWarehouse(data.warehouses.map((w) => w.id));
   if (!wired) { wire(); wired = true; }
-  update({ data, wh });
+  update({ data, wh, view: readHashView() });
 }
 
 // ---------- Rendering ----------
+const VIEW_TITLES = { overview: 'Overview', inventory: 'Inventory', shipments: 'Shipments', weather: 'Warehouse weather' };
+
+/** Shows only the selected view; the others stay in the DOM but hidden. */
+function showView(view) {
+  document.querySelectorAll('.view').forEach((v) => { v.hidden = v.dataset.view !== view; });
+  document.querySelectorAll('.view-nav__link').forEach((l) => (l.dataset.view === view ? l.setAttribute('aria-current', 'page') : l.removeAttribute('aria-current')));
+  $('view-title').textContent = VIEW_TITLES[view];
+  document.title = `${VIEW_TITLES[view]} · Kivo`;
+}
+
 function render(s, reason) {
+  showView(s.view);
   if (!s.data) return;
   const overview = reason === 'all' || reason === 'wh';
   const chart = overview || reason === 'chart';
@@ -168,15 +179,25 @@ function announce(text) {
 }
 
 // ---------- Actions ----------
-function setInv(patch, scroll = false) {
+function setInv(patch, open = false) {
   update({ inv: { ...state.inv, page: 1, ...patch } }, 'inv');
   announce(`${f.count(invFiltered.length)} products shown`);
-  if (scroll) $('inventory').scrollIntoView();
+  if (open) goTo('inventory');
 }
-function setSh(patch, scroll = false) {
+function setSh(patch, open = false) {
   update({ sh: { ...state.sh, page: 1, ...patch } }, 'sh');
   announce(`${f.count(shFiltered.length)} shipments shown`);
-  if (scroll) $('shipments').scrollIntoView();
+  if (open) goTo('shipments');
+}
+
+/** Switch view: update the URL (Back works), show the view, move focus to the content. */
+function goTo(view) {
+  if (view === state.view) return;
+  writeHashView(view);
+  update({ view }, 'view');
+  $('main').scrollTop = 0;
+  $('main').focus({ preventScroll: true });
+  announce(`${VIEW_TITLES[view]} view`);
 }
 
 function applyFilter(action) {
@@ -243,11 +264,15 @@ function wire() {
     writeHashWarehouse(wh);
     update({ wh, inv: { ...state.inv, page: 1 }, sh: { ...state.sh, page: 1 } }, 'wh');
   });
-  window.addEventListener('hashchange', () => {
+  const fromUrl = () => {
     if (!state.data) return;
     const wh = readHashWarehouse(state.data.warehouses.map((w) => w.id));
     if (wh !== state.wh) update({ wh }, 'wh');
-  });
+    const view = readHashView();
+    if (view !== state.view) update({ view }, 'view');
+  };
+  window.addEventListener('hashchange', fromUrl);
+  window.addEventListener('popstate', fromUrl);
 
   document.querySelectorAll('#alerts-strip [data-action]').forEach((b) => b.addEventListener('click', () => applyFilter(b.dataset.action)));
   $('alerts-see-all').addEventListener('click', () => applyFilter('filter-lowout'));
@@ -281,33 +306,12 @@ function wire() {
     resizeTimer = setTimeout(() => { if (state.data && !state.chartTable) renderChartArea(state); }, 120);
   }).observe($('chart'));
 
-  // Section links scroll without touching the hash, so #wh= stays intact.
-  document.querySelectorAll('.section-nav__link, .brand').forEach((a) => a.addEventListener('click', (e) => {
+  // Sidebar links switch views (no scrolling). Ctrl/Cmd-click still opens a new tab.
+  document.querySelectorAll('.view-nav__link, .brand').forEach((a) => a.addEventListener('click', (e) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault();
-    $(a.getAttribute('href').slice(1)).scrollIntoView();
-    // Highlight the clicked link at once; the observer below keeps it in sync while scrolling.
-    if (a.classList.contains('section-nav__link')) {
-      document.querySelectorAll('.section-nav__link').forEach((l) => (l === a ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
-    }
+    goTo(a.dataset.view);
   }));
-
-  // Active section link
-  const links = [...document.querySelectorAll('.section-nav__link')];
-  // The weather card sits inside Overview, so track every target in view and let the more
-  // specific one (Warehouse weather) win over its parent section.
-  const targets = ['overview', 'warehouse-weather', 'inventory', 'shipments'];
-  const visible = new Set();
-  const onSeen = (entries) => {
-    for (const en of entries) en.isIntersecting ? visible.add(en.target.id) : visible.delete(en.target.id);
-    const active = visible.has('warehouse-weather') ? 'warehouse-weather' : targets.find((id) => visible.has(id));
-    if (!active) return;
-    links.forEach((l) => (l.getAttribute('href') === `#${active}` ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
-  };
-  // Sections: active when they cross the middle band. The weather card is short, so it counts
-  // as active whenever part of it is in the top half of the screen (below the sticky header).
-  const io = new IntersectionObserver(onSeen, { rootMargin: '-40% 0px -55% 0px' });
-  ['overview', 'inventory', 'shipments'].forEach((id) => io.observe($(id)));
-  new IntersectionObserver(onSeen, { rootMargin: '-88px 0px -50% 0px' }).observe($('warehouse-weather'));
 
   initDialog();
 }

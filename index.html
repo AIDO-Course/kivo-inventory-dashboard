@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
   <link rel="stylesheet" href="css/styles.css">
   <script type="module" src="js/main.js"></script>
 </head>
@@ -27,33 +27,40 @@
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6 6 18"/></symbol>
     <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7 M4 4v4.5h4.5"/></symbol>
     <symbol id="i-table" viewBox="0 0 24 24"><path d="M3.5 5h17v14h-17Z M3.5 10h17 M3.5 14.5h17 M9.5 5v14"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M4 4h7v7H4Z M13 4h7v7h-7Z M4 13h7v7H4Z M13 13h7v7h-7Z"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 9.6 4.5 4.5 0 0 0 7 18.5Z"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14 M13 6l6 6-6 6"/></symbol>
   </svg>
 
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="site-header">
-    <div class="site-header__inner">
-      <a class="brand" href="#overview" aria-label="Kivo, go to overview">
-        <img src="assets/logo.svg" alt="Kivo" width="138" height="40">
-      </a>
-      <nav class="section-nav" aria-label="Sections">
-        <a href="#overview" class="section-nav__link" aria-current="true">Overview</a>
-        <a href="#inventory" class="section-nav__link">Inventory</a>
-        <a href="#shipments" class="section-nav__link">Shipments</a>
-        <a href="#warehouse-weather" class="section-nav__link">Warehouse weather</a>
-      </nav>
-      <p class="data-asof">
-        <span id="data-asof-text">Data as of …</span>
-        <span class="badge badge--mock" id="source-badge">Live · Airtable</span>
-        <span class="badge badge--stale" id="stale-badge" hidden>Stale</span>
-      </p>
-      <div class="wh-switch">
-        <label for="wh-select">Warehouse</label>
-        <select id="wh-select">
-          <option value="ALL">All warehouses</option>
-        </select>
-      </div>
+  <div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="#view=overview" data-view="overview" aria-label="Kivo, go to overview">
+      <img src="assets/logo-light.svg" alt="Kivo" width="124" height="36">
+    </a>
+    <nav class="view-nav" aria-label="Views">
+      <a href="#view=overview" class="view-nav__link" data-view="overview" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg><span>Overview</span></a>
+      <a href="#view=inventory" class="view-nav__link" data-view="inventory"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg><span>Inventory</span></a>
+      <a href="#view=shipments" class="view-nav__link" data-view="shipments"><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg><span>Shipments</span></a>
+      <a href="#view=weather" class="view-nav__link" data-view="weather"><svg class="icon" aria-hidden="true"><use href="#i-cloud"/></svg><span>Weather</span></a>
+    </nav>
+    <p class="sidebar__foot">Kivo · Columbus · Reno · Atlanta</p>
+  </aside>
+
+  <div class="workspace">
+  <header class="topbar">
+    <h1 class="topbar__title" id="view-title">Overview</h1>
+    <p class="data-asof">
+      <span id="data-asof-text">Data as of …</span>
+      <span class="badge badge--mock" id="source-badge">Live · Airtable</span>
+      <span class="badge badge--stale" id="stale-badge" hidden>Stale</span>
+    </p>
+    <div class="wh-switch">
+      <label for="wh-select">Warehouse</label>
+      <select id="wh-select">
+        <option value="ALL">All warehouses</option>
+      </select>
     </div>
   </header>
 
@@ -65,11 +72,10 @@
     </button>
   </div>
 
-  <main id="main" class="page">
+  <main id="main" class="page" tabindex="-1">
     <p class="visually-hidden" id="live" aria-live="polite"></p>
 
-    <section id="overview" class="section" aria-labelledby="overview-title">
-      <h1 id="overview-title" class="page-title">Inventory &amp; Logistics</h1>
+    <section id="overview" class="section view" data-view="overview" aria-label="Overview">
 
       <div class="alerts-strip" id="alerts-strip" hidden>
         <button type="button" class="alerts-strip__item status-text--out" data-action="filter-out">
@@ -114,17 +120,10 @@
           </button>
         </section>
 
-        <section class="card weather-card" id="warehouse-weather" aria-labelledby="weather-title">
-          <div class="card__head">
-            <h3 id="weather-title" class="card__title">Warehouse weather</h3>
-            <p class="weather__source" id="weather-source">OpenWeatherMap</p>
-          </div>
-          <div id="weather" aria-live="polite"><p class="weather__empty">Loading weather…</p></div>
-        </section>
       </div>
     </section>
 
-    <section id="inventory" class="section" aria-labelledby="inventory-title">
+    <section id="inventory" class="section view" data-view="inventory" aria-labelledby="inventory-title" hidden>
       <h2 id="inventory-title" class="section__title">Inventory (<span id="inv-count">0</span>)</h2>
       <div class="filters" role="search">
         <div class="field field--search">
@@ -155,7 +154,7 @@
       <div class="card table-card" id="inv-card"></div>
     </section>
 
-    <section id="shipments" class="section" aria-labelledby="shipments-title">
+    <section id="shipments" class="section view" data-view="shipments" aria-labelledby="shipments-title" hidden>
       <h2 id="shipments-title" class="section__title">Shipments (<span id="sh-count">0</span>)</h2>
       <div class="filters">
         <div class="segmented" role="group" aria-label="Direction">
@@ -177,7 +176,19 @@
       </div>
       <div class="card table-card" id="sh-card"></div>
     </section>
+
+    <section id="weather-view" class="section view" data-view="weather" aria-label="Warehouse weather" hidden>
+    <section class="card weather-card" id="warehouse-weather" aria-labelledby="weather-title">
+      <div class="card__head">
+        <h3 id="weather-title" class="card__title">Warehouse weather</h3>
+        <p class="weather__source" id="weather-source">OpenWeatherMap</p>
+      </div>
+      <div id="weather" aria-live="polite"><p class="weather__empty">Loading weather…</p></div>
+    </section>
+    </section>
   </main>
+  </div>
+  </div>
 
   <dialog class="detail" id="detail" aria-labelledby="detail-title">
     <div class="detail__head">
