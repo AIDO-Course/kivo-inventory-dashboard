@@ -302,5 +302,33 @@ test('§7.5 the dashboard reads only from Airtable: no static data file and no f
   ok(src.includes("'api/data'"), 'js/data.js must load api/data');
 });
 
+// ---------- §7.6 Warehouse weather (OpenWeatherMap) ----------
+const wx = await import(pathToFileURL(join(root, 'js/weather.js')).href);
+// A real-shaped OpenWeatherMap "current weather" response (units=imperial), trimmed.
+const owmSample = (id, description, speed, gust) => ({
+  weather: [{ id, main: 'x', description }], main: { temp: 33.6, feels_like: 27.2 }, wind: { speed, gust }, dt: 1794700800, name: 'Reno',
+});
+test('§7.6 weather: OpenWeatherMap response maps to the panel fields', () => {
+  const w = wx.toWarehouseWeather({ id: 'RNO', name: 'Reno NV' }, owmSample(800, 'clear sky', 5.8));
+  eq(w.id, 'RNO'); eq(w.temp_f, 34); eq(w.feels_like_f, 27); eq(w.condition, 'Clear sky'); eq(w.wind_mph, 6); eq(w.delay, null);
+  eq(w.observed_at, new Date(1794700800 * 1000).toISOString());
+});
+test('§7.6 weather: thunderstorm, snow, freezing/heavy rain and wind ≥ 30 mph flag a possible delay; light rain does not', () => {
+  eq(wx.delayReason(211, 5), 'Thunderstorm');
+  eq(wx.delayReason(601, 5), 'Snow');
+  eq(wx.delayReason(511, 5), 'Freezing rain');
+  eq(wx.delayReason(502, 5), 'Heavy rain');
+  eq(wx.delayReason(800, 12, 31), 'Strong wind');
+  eq(wx.delayReason(500, 10, 20), null);
+  eq(wx.delayReason(800, 29.9), null);
+});
+test('§7.6 weather: every warehouse in the data has coordinates', () => {
+  for (const w of data.warehouses) ok(wx.WAREHOUSE_COORDS[w.id], `no coordinates for ${w.id}`);
+});
+test('§7.6 weather: the API key is only read on the server, never in browser code', () => {
+  for (const f of readdirSync(join(root, 'js'))) ok(!/OPENWEATHER_API_KEY|appid=/.test(readFileSync(join(root, 'js', f), 'utf8')), `js/${f}`);
+  ok(readFileSync(join(root, 'server.mjs'), 'utf8').includes('process.env.OPENWEATHER_API_KEY'), 'server must read the key from the environment');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

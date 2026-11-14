@@ -248,7 +248,7 @@ Hand-made inline SVG icons in a single `<svg>` sprite, 24 × 24 viewBox, 2 px st
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ [kivo logo 40px]  Overview · Inventory · Shipments    Data as of Nov 7, 2026, 8:00 AM ET │
+│ [kivo logo 40px]  Overview · Inventory · Shipments · Warehouse weather   Data as of … ET │
 │                                                  · Live · Airtable   [Warehouse: All ▾] │  ← Header, white, sticky, 72px
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ ⛔ 9 SKUs out of stock · ⚠ 31 low · ⏱ 14 shipments late          [View alerts →]     │  ← Alerts strip (only if any)
@@ -295,7 +295,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 - **Look:** White background, 72 px tall (desktop), with a 1 px `--line-200` bottom border, sticky at the top.
 - **Contents, left to right:**
   - logo (40 px)
-  - section links "Overview · Inventory · Shipments" (anchor links, 44 px tall, 16 px, `--ink-600`; the active one is `--teal-700` with a 3 px `--teal-700` bottom bar, set by IntersectionObserver)
+  - section links "Overview · Inventory · Shipments · Warehouse weather" (anchor links; "Warehouse weather" jumps to the §7.6 card, 44 px tall, 16 px, `--ink-600`; the active one is `--teal-700` with a 3 px `--teal-700` bottom bar, set by IntersectionObserver)
   - "Data as of …" caption (13 px, `--ink-600`), with a "Live · Airtable" badge (`--teal-50` background, `--teal-700` text)
   - warehouse switcher: a native `<select>`, 44 px tall, minimum width 200 px, label "Warehouse"
 - **Phone:** logo and data caption on row 1, switcher full width on row 2, and section tabs in a sticky bar on row 3.
@@ -554,6 +554,16 @@ The generated data must behave like an **established business running since 2019
 - **Client:** `js/data.js` loads only `api/data`. There is no static fallback; if it fails, the §8 error banner shows. The header badge says **Live · Airtable**.
 - **Keys:** `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` live only in `.env` (git-ignored; `.env.example` is committed with no values). The token never reaches the browser. Use a token scoped to this one base; if it leaks, revoke it and make a new one.
 
+### 7.6 Warehouse weather (Exercise 4 bonus: external API)
+
+- **Source:** OpenWeatherMap "current weather" API (`/data/2.5/weather`, `units=imperial`), one call per warehouse, using fixed city coordinates in `js/weather.js`.
+- **Key:** `OPENWEATHER_API_KEY` in `.env` only. The server calls OpenWeatherMap; the key never reaches the browser.
+- **Server:** `GET /api/weather` returns `{ source, updated_at, warehouses: [{ id, name, temp_f, feels_like_f, condition, code, wind_mph, delay, observed_at }] }`, cached 30 minutes. On any error it returns 502.
+- **Possible delay** (`delay`, a reason or null): thunderstorm (2xx), snow (6xx), freezing rain (511), heavy rain (502–504), or wind/gusts ≥ 30 mph.
+- **Panel:** "Warehouse weather" card below the stock value chart and alerts, full width. One small card per warehouse: name, temperature (°F), condition and wind, and either an amber "‹reason›: may delay shipments" badge (same style as the Low badge) or "No weather delays expected". The warehouse switch shows only that warehouse. The caption shows "OpenWeatherMap · updated ‹time› ET".
+- **Failure:** the panel shows "Weather unavailable right now. The rest of the dashboard is not affected." It never blocks the main data.
+- **Not a map:** text and numbers only (maps stay on the IT IS NOT list).
+
 ---
 
 ## 8. States & interaction
@@ -627,7 +637,7 @@ The generated data must behave like an **established business running since 2019
   js/*.js
   assets/logo.svg, logo-icon.svg, logo.png
   scripts/generate-data.js, scripts/seed-airtable.mjs, scripts/airtable.mjs
-  server.mjs, js/airtable-map.js, .env.example
+  server.mjs, js/airtable-map.js, js/weather.js, .env.example
   tests/tests.html + tests/run-tests.mjs (Node, no dependencies)
   README.md, SPEC.md, Practice.md, CLAUDE.md
   ```

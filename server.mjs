@@ -7,6 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { join, normalize, extname } from 'node:path';
 import { loadEnv, client, root } from './scripts/airtable.mjs';
 import { TABLES, fromRecords } from './js/airtable-map.js';
+import { WAREHOUSE_COORDS, toWarehouseWeather } from './js/weather.js';
 
 const PORT = Number(process.env.PORT) || 8765;
 const CACHE_MS = 60_000; // read Airtable at most once a minute: nobody needs fresher stock numbers
@@ -20,6 +21,30 @@ const BLOCKED = /(^|[\\/])(\.env|\.git|\.claude|node_modules|scripts|server\.mjs
 
 const at = client(loadEnv());
 let cache = { at: 0, body: null };
+
+// ---------- Warehouse weather: OpenWeatherMap (SPEC §7.6) ----------
+// The key stays here, read from .env. Weather changes slowly, so read it at most every 30 minutes.
+const WEATHER_CACHE_MS = 30 * 60_000;
+let weatherCache = { at: 0, body: null };
+
+async function apiWeather() {
+  if (weatherCache.body && Date.now() - weatherCache.at < WEATHER_CACHE_MS) return weatherCache.body;
+  const key = process.env.OPENWEATHER_API_KEY;
+  if (!key) throw new Error('OPENWEATHER_API_KEY is not set in .env');
+  const warehouses = await at.listAll('Warehouses');
+  const out = [];
+  for (const w of warehouses) {
+    const c = WAREHOUSE_COORDS[w.id];
+    if (!c) continue;
+    const q = new URLSearchParams({ lat: c.lat, lon: c.lon, units: 'imperial', appid: key });
+    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?${q}`);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`OpenWeatherMap ${res.status} ${json.message || ''}`.trim());
+    out.push(toWarehouseWeather(w, json));
+  }
+  weatherCache = { at: Date.now(), body: JSON.stringify({ source: 'openweathermap', updated_at: new Date().toISOString(), warehouses: out }) };
+  return weatherCache.body;
+}
 
 async function apiData() {
   if (cache.body && Date.now() - cache.at < CACHE_MS) return cache.body;
@@ -36,6 +61,17 @@ createServer(async (req, res) => {
       const body = await apiData();
       res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' });
       return res.end(body);
+    }
+    if (url.pathname === '/api/weather') {
+      try {
+        const body = await apiWeather();
+        res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' });
+        return res.end(body);
+      } catch (e) {
+        console.error(e.message);
+        res.writeHead(502, { 'Content-Type': TYPES['.json'] });
+        return res.end(JSON.stringify({ error: 'Could not read weather from OpenWeatherMap' }));
+      }
     }
     const rel = normalize(decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname)).replace(/^[\\/]+/, '');
     if (rel.startsWith('..') || BLOCKED.test(rel)) { res.writeHead(404); return res.end('Not found'); }

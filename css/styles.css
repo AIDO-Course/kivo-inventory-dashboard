@@ -172,6 +172,7 @@
     .overview-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: start; }
     .chart-card { grid-column: span 8; }
     .alerts-panel { grid-column: span 4; }
+    .weather-card { grid-column: span 12; }
   }
 
   .filters { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
@@ -472,6 +473,30 @@
   /* Alerts panel (SPEC §6.8) */
   .alerts-panel { display: grid; }
   .alerts-panel > .btn { justify-self: start; margin: var(--space-2) var(--space-4) var(--space-4); }
+  /* Warehouse weather (SPEC §7.6) */
+  .weather-card { scroll-margin-top: 88px; }
+  .weather__source { font-size: var(--fs-caption); color: var(--ink-600); }
+  .weather__empty { padding: 0 var(--space-4) var(--space-4); font-size: var(--fs-label); color: var(--ink-600); }
+  .weather-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+    padding: 0 var(--space-4) var(--space-4);
+  }
+  .weather-list li {
+    display: grid;
+    gap: var(--space-1);
+    align-content: start;
+    padding: var(--space-3);
+    border: 1px solid var(--line-200);
+    border-radius: var(--radius-card);
+  }
+  .weather-list__name { font-size: var(--fs-label); font-weight: 600; }
+  .weather-list__temp { font-size: var(--fs-h2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .weather-list__meta, .weather-list__ok { font-size: var(--fs-caption); color: var(--ink-600); }
+  .weather-list .badge { justify-self: start; white-space: normal; }
+
   .alerts-list { list-style: none; padding: 0 var(--space-4); }
   .alerts-list li {
     display: grid;
