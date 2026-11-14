@@ -242,11 +242,11 @@ test('Global: nothing from IT IS NOT in the UI (login, edit, order/reorder, emai
   }
   ok(!/prefers-color-scheme:\s*dark/.test(readFileSync(join(root, 'css/styles.css'), 'utf8')), 'dark mode CSS');
 });
-test('Global: header logo is assets/logo.svg at 40 px height, Inter loaded', () => {
+test('Global: sidebar logo is assets/logo-light.svg at 36 px height; Geist and Geist Mono loaded', () => {
   const html = readFileSync(join(root, 'index.html'), 'utf8');
-  ok(/<img src="assets\/logo\.svg"[^>]*height="40"/.test(html), 'logo');
-  ok(html.includes('family=Inter'), 'Inter');
-  ok(/\.brand img \{ block-size: 40px/.test(readFileSync(join(root, 'css/styles.css'), 'utf8')), 'logo css height');
+  ok(/<img src="assets\/logo-light\.svg"[^>]*height="36"/.test(html), 'logo');
+  ok(html.includes('family=Geist:') && html.includes('family=Geist+Mono'), 'Geist fonts');
+  ok(/\.sidebar \.brand img \{ block-size: 36px/.test(readFileSync(join(root, 'css/styles.css'), 'utf8')), 'logo css height');
 });
 test('M8: data-as-of text formats to "Nov 7, 2026, 8:00 AM ET"', () => {
   eq(fmt.asOf(data.meta.generated_at), 'Nov 7, 2026, 8:00 AM ET');

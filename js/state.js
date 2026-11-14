@@ -1,4 +1,4 @@
-// Single store with subscribe/notify. Filters reset on reload; only the warehouse lives in the URL hash.
+// Single store with subscribe/notify. Filters reset on reload; the view and the warehouse live in the URL hash.
 import { ALL } from './metrics.js';
 
 const listeners = new Set();
@@ -6,8 +6,11 @@ const listeners = new Set();
 export const defaultInv = () => ({ q: '', category: '', warehouse: '', status: '', sort: null, page: 1 });
 export const defaultSh = () => ({ direction: '', status: '', sort: null, page: 1 });
 
+export const VIEWS = ['overview', 'inventory', 'shipments', 'weather'];
+
 export const state = {
   data: null,
+  view: 'overview',
   wh: ALL,
   chartMode: 'category',
   chartTable: false,
@@ -31,7 +34,25 @@ export function readHashWarehouse(validIds) {
   return m && validIds.includes(m[1]) ? m[1] : ALL;
 }
 
+export function readHashView() {
+  const m = /(?:^#|&)view=([a-z]+)/.exec(location.hash);
+  return m && VIEWS.includes(m[1]) ? m[1] : 'overview';
+}
+
+/** "#view=inventory&wh=RNO"; defaults (overview, all warehouses) are left out. */
+export function hashFor(view, wh) {
+  const parts = [];
+  if (view !== 'overview') parts.push(`view=${view}`);
+  if (wh !== ALL) parts.push(`wh=${wh}`);
+  return parts.length ? `#${parts.join('&')}` : location.pathname + location.search;
+}
+
 export function writeHashWarehouse(wh) {
-  const next = wh === ALL ? location.pathname + location.search : `#wh=${wh}`;
-  history.replaceState(null, '', next);
+  history.replaceState(null, '', hashFor(state.view, wh));
+}
+
+/** A view change is a new history entry, so the browser Back button returns to the previous view. */
+export function writeHashView(view) {
+  const next = hashFor(view, state.wh);
+  if (next !== location.hash && !(next.startsWith('/') && !location.hash)) history.pushState(null, '', next);
 }

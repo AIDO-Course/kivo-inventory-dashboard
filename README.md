@@ -20,7 +20,8 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 - **Stock value chart:** by category or by warehouse, in hand-built SVG, with a click/keyboard tooltip, a text summary and a "Show as table" view.
 - **Row-detail dialog:** every field of a SKU or shipment, including the columns hidden on smaller screens.
 - **"Data as of" caption** with a *Live · Airtable* badge, plus loading, empty and error states.
-- **Warehouse weather** (bonus, external API): current weather for Columbus, Reno and Atlanta from OpenWeatherMap, with a "may delay shipments" warning for storms, snow, heavy rain or strong wind. The header menu has a **Warehouse weather** link that jumps to it.
+- **Warehouse weather** (bonus, external API): current weather for Columbus, Reno and Atlanta from OpenWeatherMap, with a "may delay shipments" warning for storms, snow, heavy rain or strong wind. It has its own **Warehouse weather** view in the sidebar.
+- **Modern app layout:** a deep-teal sidebar switches between four views (Overview, Inventory, Shipments, Warehouse weather), one at a time, with no page scrolling. The view is kept in the URL (`#view=shipments`) and Back works. On phones the sidebar becomes a bottom tab bar.
 - **Responsive and accessible:** phone, tablet and desktop. All text meets AA contrast, touch targets are at least 44 px, keyboard navigation works, and reduced motion is respected.
 
 ## Not built yet
@@ -137,7 +138,7 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 
 | Path | Purpose |
 |---|---|
-| `index.html` | The single page: header, overview, inventory, shipments, dialog |
+| `index.html` | The single page: sidebar, top bar, the four views (overview, inventory, shipments, weather), dialog |
 | `css/styles.css` | All styles, in `@layer`s, with every design token as a CSS variable |
 | `js/main.js` | Entry point: loads data, wires controls, renders on state change |
 | `js/data.js` | Loads data from `api/data` (Airtable only, no fallback) and validates it |
@@ -157,7 +158,7 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `.env.example` | Template for `.env` (names only, no secret values) |
 | `tests/run-tests.mjs` | Node tests |
 | `tests/tests.html` | Browser tests |
-| `assets/` | Kivo logo (`logo.svg`, `logo-icon.svg` favicon, `logo.png`) |
+| `assets/` | Kivo logo (`logo.svg`, `logo-light.svg` for the dark sidebar, `logo-icon.svg` favicon, `logo.png`) |
 | `SPEC.md` | The project spec |
 | `Practice.md` | How we work: 4-step workflow and git rules |
 | `CLAUDE.md` | Loads Practice.md and the project skills for Claude Code |

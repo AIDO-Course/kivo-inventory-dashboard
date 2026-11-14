@@ -76,9 +76,9 @@ At a glance, it answers three questions:
 | | Phone `< 600 px` | Tablet `600–1023 px` | Desktop `≥ 1024 px` |
 |---|---|---|---|
 | Page padding | 16 px | 24 px | 32 px |
-| Max content width | 100% | 100% | **1360 px**, centred |
-| Navigation | Section tabs in a sticky bar under the header, horizontally scrollable *inside the bar* | Same as phone | Section links in the header, right of the logo |
-| Warehouse switcher | Full-width select under the header | In the header, right side | In the header, right side |
+| Max content width | 100% | 100% | **1440 px**, centred |
+| Navigation (§6.1) | Bottom tab bar (4 views, icon + label) | Icon rail, 88 px, on the left (768–1023 px; below 768 px the bottom tab bar) | Sidebar, 232 px, on the left: logo + 4 view links |
+| Warehouse switcher | In the top bar, data caption on its own row | In the top bar, right side | In the top bar, right side |
 | KPI tiles per row | 2 (7 tiles → 4 rows, last tile spans 2 columns) | 4 (2 rows) | 7 (1 row; at 1024–1279 px: 4 + 3) |
 | Alerts strip | Full width, stacked | Full width | Full width |
 | Chart + Alerts panel | Stacked: chart, then alerts | Stacked | Side by side: chart 8 of 12 columns, Low-stock alerts 4 of 12 |
@@ -132,7 +132,8 @@ At a glance, it answers three questions:
   - `assets/logo.svg`: full logo (icon + "kivo" wordmark), viewBox 220 × 64.
   - `assets/logo-icon.svg`: icon only, square, 64 × 64.
   - `assets/logo.png`: 512 × 512 raster, transparent.
-- **Header:** `logo.svg` at **40 px height** (≈ 138 px wide), left-aligned, on the **White** header background. The logo must never sit on a teal, amber or status-colour fill.
+- **Sidebar:** `logo-light.svg` (same logo, wordmark in White) at **36 px height**, top of the deep-teal (`--teal-800`) sidebar. This is the only place the logo sits on a fill; `logo.svg` (dark wordmark) is used on White. Never on amber or a status colour.
+  - `assets/logo-light.svg`: full logo with a White wordmark, for the sidebar.
 - **Favicon:** `logo-icon.svg` (`<link rel="icon" type="image/svg+xml">`), with `logo.png` as `apple-touch-icon`.
 - **Clear space:** at least **12 px** on every side (≈ ¼ of the logo height).
 - **Minimum size:** 32 px tall for the full logo and 16 px for the icon.
@@ -214,12 +215,13 @@ UI graphics need 3 : 1 against their background (WCAG 1.4.11). The focus ring (T
 
 ### 5.4 Typography
 
-- **Family:** **Inter** (Google Fonts, weights 400, 500, 600 and 700, `display=swap`), falling back to `system-ui, "Segoe UI", Roboto, Arial, sans-serif`.
+- **Family:** **Geist** (Google Fonts, weights 400, 500, 600 and 700, `display=swap`), falling back to `system-ui, "Segoe UI", Roboto, Arial, sans-serif`.
+- **Numbers:** **Geist Mono** (500, 600) for KPI values, numeric table cells and weather temperatures.
 - **Tabular numerals** (`font-variant-numeric: tabular-nums`) for every number.
 
 | Text | Size (desktop) | Size (phone) | Weight | Line height |
 |---|---|---|---|---|
-| KPI value | 32 px | 28 px | 700 | 1.1 |
+| KPI value | 32 px | 28 px | 600 (Geist Mono) | 1.1 |
 | Page title (h1, "Inventory & Logistics") | 24 px | 20 px | 700 | 1.2 |
 | Section title (h2) | 20 px | 18 px | 600 | 1.3 |
 | Body / table cell | 16 px | 16 px | 400 | 1.5 |
@@ -248,8 +250,8 @@ Hand-made inline SVG icons in a single `<svg>` sprite, 24 × 24 viewBox, 2 px st
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ [kivo logo 40px]  Overview · Inventory · Shipments · Warehouse weather   Data as of … ET │
-│                                                  · Live · Airtable   [Warehouse: All ▾] │  ← Header, white, sticky, 72px
+│ Sidebar 232px (teal-800): logo · Overview · Inventory · Shipments · Warehouse weather │
+│ Top bar 64px: Overview          Data as of … ET · Live · Airtable [Warehouse: All ▾] │  ← one view below, no page scroll
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ ⛔ 9 SKUs out of stock · ⚠ 31 low · ⏱ 14 shipments late          [View alerts →]     │  ← Alerts strip (only if any)
 ├──────────────────────────────────────────────────────────────────────────────────────┤
@@ -291,22 +293,22 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 
 ## 6. Components
 
-### 6.1 Header
-- **Look:** White background, 72 px tall (desktop), with a 1 px `--line-200` bottom border, sticky at the top.
-- **Contents, left to right:**
-  - logo (40 px)
-  - section links "Overview · Inventory · Shipments · Warehouse weather" (anchor links; "Warehouse weather" jumps to the §7.6 card, 44 px tall, 16 px, `--ink-600`; the active one is `--teal-700` with a 3 px `--teal-700` bottom bar, set by IntersectionObserver)
-  - "Data as of …" caption (13 px, `--ink-600`), with a "Live · Airtable" badge (`--teal-50` background, `--teal-700` text)
-  - warehouse switcher: a native `<select>`, 44 px tall, minimum width 200 px, label "Warehouse"
-- **Phone:** logo and data caption on row 1, switcher full width on row 2, and section tabs in a sticky bar on row 3.
+### 6.1 App shell and view navigation
+- **One view at a time, no page scroll.** The page is an app shell: a sidebar plus a workspace (top bar + view area). Clicking a sidebar item **replaces** the view area with that view; the document itself never scrolls. A view taller than the screen scrolls inside the view area only; the Inventory and Shipments tables scroll inside their own card with the pager fixed at the bottom of the card.
+- **Views:** Overview (alerts strip, KPI tiles, chart, low-stock alerts) · Inventory · Shipments · Warehouse weather (§7.6).
+- **Sidebar:** `--teal-800` background, logo (36 px, §5.1), then the 4 view links (icon + label, 44 px tall, `--teal-50` text). Hover and active: `--teal-700` background, White text; the active link also gets a 3 px `--amber-500` bar (left edge on desktop, bottom edge in the phone tab bar) and `aria-current="page"`.
+- **Top bar:** White, 64 px, 1 px `--line-200` bottom border: view title (h1, 24 px, 600), "Data as of …" caption with the "Live · Airtable" badge, and the warehouse switcher (native `<select>`, 44 px, label "Warehouse").
+- **URL:** `#view=inventory&wh=RNO` (defaults left out). Opening that URL starts on that view and warehouse; Back and Forward move between views. The page title is "‹View› · Kivo".
+- **Links into views:** alerts strip items, KPI tiles 3, 4 and 6 and "See all in inventory →" set the filter and switch to the Inventory or Shipments view.
+- Responsive sizes: see §3.
 
 ### 6.2 Alerts strip
 - **Visibility:** shown only when out-of-stock + low + late > 0.
 - **Look:** `--amber-50` background, `--line-200` border, 12 px radius, 16 px padding.
 - **Contents:** three counts, each an icon + number + word in its status colour (red for Out and Late, amber-800 for Low). The counts are buttons:
-  - "⛔ 9 out of stock" sets the inventory Status filter to Out and scrolls to the table.
-  - "⚠ 31 low" sets it to Low and scrolls to the table.
-  - "⏱ 14 late" sets the shipment Status filter to Late and scrolls to that table.
+  - "⛔ 9 out of stock" sets the inventory Status filter to Out and opens the Inventory view.
+  - "⚠ 31 low" sets it to Low and opens the Inventory view.
+  - "⏱ 14 late" sets the shipment Status filter to Late and opens the Shipments view.
 - **Phone:** the three buttons stack, each full width, 44 px.
 
 ### 6.3 KPI tiles (M1)
@@ -364,7 +366,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 ### 6.8 Low-stock alerts panel (M3)
 - **Look:** a White card titled "Low-stock alerts (N)".
 - **List:** up to 8 rows, out-of-stock first, then Low sorted by qty ÷ reorder point ascending. Each row is 56 px with: status badge · product name (1 line, ellipsis) · "12 / 30 on hand · Columbus" (13 px, `--ink-600`).
-- **Footer:** a ghost button, "See all in inventory →", that sets the Status filter to "Low + Out" and scrolls to the table.
+- **Footer:** a ghost button, "See all in inventory →", that sets the Status filter to "Low + Out" and opens the Inventory view.
 - **No problems:** if N = 0, the panel shows "✓ Nothing below reorder point." in `--green-700`.
 
 ### 6.9 Stock value chart (M6)
@@ -381,7 +383,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 - **"Show as table" toggle:** replaces the chart with a `<table>` of the same numbers.
 
 ### 6.10 Navigation
-Anchor links to `#overview`, `#inventory` and `#shipments`, with smooth scroll (instant under `prefers-reduced-motion`). The header is sticky, so sections get `scroll-margin-top: 88px`.
+See §6.1: sidebar view links, one view at a time, kept in the URL hash. No smooth scrolling and no anchor jumps.
 
 ### 6.11 Buttons
 
@@ -560,7 +562,7 @@ The generated data must behave like an **established business running since 2019
 - **Key:** `OPENWEATHER_API_KEY` in `.env` only. The server calls OpenWeatherMap; the key never reaches the browser.
 - **Server:** `GET /api/weather` returns `{ source, updated_at, warehouses: [{ id, name, temp_f, feels_like_f, condition, code, wind_mph, delay, observed_at }] }`, cached 30 minutes. On any error it returns 502.
 - **Possible delay** (`delay`, a reason or null): thunderstorm (2xx), snow (6xx), freezing rain (511), heavy rain (502–504), or wind/gusts ≥ 30 mph.
-- **Panel:** "Warehouse weather" card below the stock value chart and alerts, full width. One small card per warehouse: name, temperature (°F), condition and wind, and either an amber "‹reason›: may delay shipments" badge (same style as the Low badge) or "No weather delays expected". The warehouse switch shows only that warehouse. The caption shows "OpenWeatherMap · updated ‹time› ET".
+- **Panel:** its own "Warehouse weather" view (§6.1), opened from the sidebar. One small card per warehouse: name, temperature (°F), condition and wind, and either an amber "‹reason›: may delay shipments" badge (same style as the Low badge) or "No weather delays expected". The warehouse switch shows only that warehouse. The caption shows "OpenWeatherMap · updated ‹time› ET".
 - **Failure:** the panel shows "Weather unavailable right now. The rest of the dashboard is not affected." It never blocks the main data.
 - **Not a map:** text and numbers only (maps stay on the IT IS NOT list).
 
