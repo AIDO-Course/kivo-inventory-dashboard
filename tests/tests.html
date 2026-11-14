@@ -14,10 +14,16 @@
 </head>
 <body>
   <h1>Browser tests (SPEC.md §11)</h1>
+  <p>Run with the server: <code>node server.mjs</code>, then open /tests/tests.html. Expected numbers are computed from the same Airtable data the page loads.</p>
   <p id="summary">Running…</p>
   <ul id="results"></ul>
   <div id="frames"></div>
   <script type="module">
+    import * as m from '../js/metrics.js';
+    // Expected values come from the Airtable data (SPEC §7.5), computed with the §7.1 formulas.
+    const data = await (await fetch('../api/data', { cache: 'no-cache' })).json();
+    const K = m.kpis(data, m.ALL);
+    const KR = m.kpis(data, 'RNO');
     const results = document.getElementById('results');
     let pass = 0, fail = 0;
     const log = (name, ok, msg = '') => {
@@ -54,28 +60,29 @@
     let loads = 0;
     w.addEventListener('load', () => loads++);
     const val = (i) => d.querySelectorAll('.kpi__value')[i].textContent.trim();
+    const num = (i) => Number(val(i).replace(/,/g, ''));
     const change = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
 
     await test('M1 7 tiles in order with spec labels', async () => {
       const labels = [...d.querySelectorAll('.kpi__label')].map((l) => l.textContent.trim());
       const want = ['SKUs', 'Stock value', 'Low stock', 'Out of stock', 'In transit', 'Late', 'On-time %'];
       assert(JSON.stringify(labels) === JSON.stringify(want), labels.join(','));
-      assert(val(0) === '642' && val(2) === '31' && val(3) === '9' && val(4) === '58' && val(5) === '14', 'values');
+      assert(num(0) === K.skus && num(2) === K.low && num(3) === K.out && num(4) === K.inTransit && num(5) === K.late, `values ${[0, 2, 3, 4, 5].map(val)}`);
     });
     await test('M1 every delta shows an arrow and a sign; on-time delta in pts', async () => {
       const deltas = [...d.querySelectorAll('.kpi__delta')].map((x) => x.textContent).filter((t) => /vs/.test(t));
       assert(deltas.length === 2 && deltas.every((t) => /[▲▼▶] [+−±]/.test(t)), deltas.join(' | '));
       assert(/pts/.test(deltas[1]), 'pts');
     });
-    await test('M8 header shows "Data as of Nov 7, 2026, 8:00 AM ET · Mock data"', async () => {
+    await test('M8 header shows "Data as of Nov 7, 2026, 8:00 AM ET · Live · Airtable"', async () => {
       assert(d.getElementById('data-asof-text').textContent === 'Data as of Nov 7, 2026, 8:00 AM ET', d.getElementById('data-asof-text').textContent);
-      assert(d.querySelector('.badge--mock').textContent === 'Mock data', 'badge');
+      assert(d.querySelector('.badge--mock').textContent === 'Live · Airtable', 'badge');
     });
     await test('M2 switching to Reno NV updates tiles, chart, alerts and tables without reload; hash = #wh=RNO', async () => {
       const before = val(0);
       change(d.getElementById('wh-select'), 'RNO');
       await sleep(700);
-      assert(val(0) === '430' && val(0) !== before, `SKUs ${val(0)}`);
+      assert(num(0) === KR.skus && val(0) !== before, `SKUs ${val(0)}`);
       assert(w.location.hash === '#wh=RNO', w.location.hash);
       const whs = [...d.querySelectorAll('#inv-card tbody tr td:nth-child(5)')].map((t) => t.textContent);
       assert(whs.length && whs.every((t) => t === 'Reno NV'), 'inventory not filtered');
@@ -92,30 +99,32 @@
       g.remove();
     });
     await test('M3 alerts panel count = Low + Out; See all filters the table to the same count', async () => {
-      assert(d.getElementById('alerts-count').textContent === '40', d.getElementById('alerts-count').textContent);
+      const n = String(K.low + K.out);
+      assert(d.getElementById('alerts-count').textContent === n, d.getElementById('alerts-count').textContent);
       d.getElementById('alerts-see-all').click();
       await sleep(50);
-      assert(d.getElementById('inv-count').textContent.startsWith('40 of'), d.getElementById('inv-count').textContent);
+      assert(d.getElementById('inv-count').textContent.startsWith(`${n} of`), d.getElementById('inv-count').textContent);
       const first = d.querySelector('#alerts-list .badge').textContent.trim();
       assert(first === 'Out', 'Out not first');
       d.getElementById('inv-clear').click();
       await sleep(50);
     });
-    await test('M4 search "0412" shows only matching rows (after 200 ms debounce)', async () => {
+    await test('M4 search by part of a SKU shows only matching rows (after 200 ms debounce)', async () => {
       const s = d.getElementById('inv-search');
-      s.value = '0412'; s.dispatchEvent(new w.Event('input', { bubbles: true }));
+      const q = data.stock[0].sku.slice(-4);
+      s.value = q; s.dispatchEvent(new w.Event('input', { bubbles: true }));
       await sleep(350);
       const rows = [...d.querySelectorAll('#inv-card tbody tr')];
       assert(rows.length > 0, 'no rows');
-      assert(rows.every((r) => /0412/i.test(r.cells[1].textContent + r.cells[2].textContent)), 'bad row');
+      assert(rows.every((r) => (r.cells[1].textContent + r.cells[2].textContent).toLowerCase().includes(q.toLowerCase())), 'bad row');
       d.getElementById('inv-clear').click(); await sleep(50);
     });
     await test('M4 status Out shows only qty 0 and the title count matches', async () => {
       change(d.getElementById('inv-status'), 'out');
       await sleep(50);
       const rows = [...d.querySelectorAll('#inv-card tbody tr')];
-      assert(rows.length === 9 && rows.every((r) => r.cells[5].textContent === '0'), `rows ${rows.length}`);
-      assert(d.getElementById('inv-count').textContent.startsWith('9 of'), d.getElementById('inv-count').textContent);
+      assert(rows.length === Math.min(K.out, 25) && rows.every((r) => r.cells[5].textContent === '0'), `rows ${rows.length}`);
+      assert(d.getElementById('inv-count').textContent.startsWith(`${K.out} of`), d.getElementById('inv-count').textContent);
       d.getElementById('inv-clear').click(); await sleep(50);
     });
     await test('M4 clicking Qty sorts asc then desc and aria-sort follows', async () => {
@@ -132,15 +141,16 @@
     await test('M4 25 rows per page; pager total = ceil(filtered / 25)', async () => {
       assert(d.querySelectorAll('#inv-card tbody tr').length === 25, 'rows');
       const nums = [...d.querySelectorAll('#inv-card .pager [data-page][aria-label]')].map((b) => Number(b.textContent));
-      assert(Math.max(...nums) === Math.ceil(1410 / 25), `max page ${Math.max(...nums)}`);
+      assert(Math.max(...nums) === Math.ceil(data.stock.length / 25), `max page ${Math.max(...nums)}`);
     });
     await test('M5 late shipments first, each with "(N days late)"', async () => {
       const rows = [...d.querySelectorAll('#sh-card tbody tr')];
       const st = rows.map((r) => r.cells[0].textContent.trim());
       const lastLate = st.lastIndexOf('Late');
-      assert(lastLate === 13, `late rows on page 1: ${lastLate + 1}`);
-      assert(st.slice(0, 14).every((s) => s === 'Late'), 'order');
-      assert(rows.slice(0, 14).every((r) => /\(\d+ days? late\)/.test(r.cells[5].textContent)), 'days late');
+      const L = Math.min(K.late, 25);
+      assert(lastLate === L - 1, `late rows on page 1: ${lastLate + 1}`);
+      assert(st.slice(0, L).every((s) => s === 'Late'), 'order');
+      assert(rows.slice(0, L).every((r) => /\(\d+ days? late\)/.test(r.cells[5].textContent)), 'days late');
     });
     await test('M5 Direction = Inbound shows only inbound rows', async () => {
       d.querySelector('[data-direction="inbound"]').click(); await sleep(50);
@@ -215,7 +225,7 @@
     }
 
     await test('States: failed load shows error banner text and Retry button', async () => {
-      const g = await frame('../index.html?data=missing.json', 1024, 600);
+      const g = await frame('../index.html?api=missing', 1024, 600);
       const gd = g.contentDocument;
       await until(() => !gd.getElementById('error-banner').hidden);
       assert(gd.getElementById('error-text').textContent === "Couldn't load dashboard data.", gd.getElementById('error-text').textContent);
