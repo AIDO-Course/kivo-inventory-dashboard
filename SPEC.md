@@ -554,6 +554,16 @@ The generated data must behave like an **established business running since 2019
 - **Client:** `js/data.js` loads only `api/data`. There is no static fallback; if it fails, the §8 error banner shows. The header badge says **Live · Airtable**.
 - **Keys:** `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` live only in `.env` (git-ignored; `.env.example` is committed with no values). The token never reaches the browser. Use a token scoped to this one base; if it leaks, revoke it and make a new one.
 
+### 7.6 Warehouse weather (Exercise 4 bonus: external API)
+
+- **Source:** OpenWeatherMap "current weather" API (`/data/2.5/weather`, `units=imperial`), one call per warehouse, using fixed city coordinates in `js/weather.js`.
+- **Key:** `OPENWEATHER_API_KEY` in `.env` only. The server calls OpenWeatherMap; the key never reaches the browser.
+- **Server:** `GET /api/weather` returns `{ source, updated_at, warehouses: [{ id, name, temp_f, feels_like_f, condition, code, wind_mph, delay, observed_at }] }`, cached 30 minutes. On any error it returns 502.
+- **Possible delay** (`delay`, a reason or null): thunderstorm (2xx), snow (6xx), freezing rain (511), heavy rain (502–504), or wind/gusts ≥ 30 mph.
+- **Panel:** "Warehouse weather" card below the stock value chart and alerts, full width. One small card per warehouse: name, temperature (°F), condition and wind, and either an amber "‹reason›: may delay shipments" badge (same style as the Low badge) or "No weather delays expected". The warehouse switch shows only that warehouse. The caption shows "OpenWeatherMap · updated ‹time› ET".
+- **Failure:** the panel shows "Weather unavailable right now. The rest of the dashboard is not affected." It never blocks the main data.
+- **Not a map:** text and numbers only (maps stay on the IT IS NOT list).
+
 ---
 
 ## 8. States & interaction
@@ -627,7 +637,7 @@ The generated data must behave like an **established business running since 2019
   js/*.js
   assets/logo.svg, logo-icon.svg, logo.png
   scripts/generate-data.js, scripts/seed-airtable.mjs, scripts/airtable.mjs
-  server.mjs, js/airtable-map.js, .env.example
+  server.mjs, js/airtable-map.js, js/weather.js, .env.example
   tests/tests.html + tests/run-tests.mjs (Node, no dependencies)
   README.md, SPEC.md, Practice.md, CLAUDE.md
   ```

@@ -10,6 +10,7 @@ import {
 } from './tables.js';
 import { initDialog, openStock, openShipment } from './dialog.js';
 import * as f from './format.js';
+import { renderWeather } from './weather.js';
 
 const $ = (id) => document.getElementById(id);
 let invAll = [];
@@ -87,6 +88,7 @@ function render(s, reason) {
     const k = renderKpis($('kpis'), s.data, s.wh, applyFilter);
     renderAlertsStrip(k);
     renderAlertsPanel(s);
+    if (weather !== undefined) renderWeather($('weather'), weather, s.wh);
   }
   if (chart) renderChartArea(s);
   if (inv) renderInv(s);
@@ -299,5 +301,22 @@ function wire() {
   initDialog();
 }
 
+// ---------- Warehouse weather (SPEC §7.6) ----------
+// Loaded separately from the main data: if OpenWeatherMap fails, only this panel shows "unavailable".
+let weather; // undefined = loading, null = unavailable, object = /api/weather payload
+async function loadWeather() {
+  try {
+    const res = await fetch('api/weather', { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    weather = await res.json();
+    $('weather-source').textContent = `OpenWeatherMap · updated ${f.asOf(weather.updated_at).replace(/^\w+ \d+, \d+, /, '')}`;
+  } catch (err) {
+    console.info('Weather not available:', err.message);
+    weather = null;
+  }
+  renderWeather($('weather'), weather, state.wh);
+}
+
 subscribe(render);
 load();
+loadWeather();

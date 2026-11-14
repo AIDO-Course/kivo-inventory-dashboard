@@ -112,6 +112,14 @@
             See all in inventory<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
           </button>
         </section>
+
+        <section class="card weather-card" aria-labelledby="weather-title">
+          <div class="card__head">
+            <h3 id="weather-title" class="card__title">Warehouse weather</h3>
+            <p class="weather__source" id="weather-source">OpenWeatherMap</p>
+          </div>
+          <div id="weather" aria-live="polite"><p class="weather__empty">Loading weather…</p></div>
+        </section>
       </div>
     </section>
 

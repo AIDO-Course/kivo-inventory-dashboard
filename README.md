@@ -20,6 +20,7 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 - **Stock value chart:** by category or by warehouse, in hand-built SVG, with a click/keyboard tooltip, a text summary and a "Show as table" view.
 - **Row-detail dialog:** every field of a SKU or shipment, including the columns hidden on smaller screens.
 - **"Data as of" caption** with a *Live · Airtable* badge, plus loading, empty and error states.
+- **Warehouse weather** (bonus, external API): current weather for Columbus, Reno and Atlanta from OpenWeatherMap, with a "may delay shipments" warning for storms, snow, heavy rain or strong wind.
 - **Responsive and accessible:** phone, tablet and desktop. All text meets AA contrast, touch targets are at least 44 px, keyboard navigation works, and reduced motion is respected.
 
 ## Not built yet
@@ -68,14 +69,19 @@ All the commands below run from this folder. If you see `Cannot find module ...s
    - Access: the **Kivo** base only
 4. Copy the token (it starts with `pat` and is shown only once). Treat it like a password: never put it in code, a chat or a screenshot.
 
-### 3. Put the token in `.env`
+### 3. Put the keys in `.env`
 
-Copy `.env.example` to a new file named `.env` in the project folder and fill in both values:
+For the weather panel, also get a free OpenWeatherMap key: sign up at https://home.openweathermap.org/users/sign_up and copy the key from https://home.openweathermap.org/api_keys (a new key can take up to 2 hours to start working).
+
+Copy `.env.example` to a new file named `.env` in the project folder and fill in the values:
 
 ```
 AIRTABLE_TOKEN=pat...
 AIRTABLE_BASE_ID=app...
+OPENWEATHER_API_KEY=...
 ```
+
+Without `OPENWEATHER_API_KEY` (or while it is not active yet) the dashboard still works; only the weather panel says "Weather unavailable".
 
 `.env` is in `.gitignore`, so it is never committed. (If you paste the whole base URL, the scripts still pick out the `app…` ID.)
 
@@ -99,6 +105,7 @@ You should see `Kivo dashboard on http://localhost:8765 (data from Airtable base
 
 - The header badge says **Live · Airtable** and the **SKUs** tile shows **250**, the number of records in the Products table.
 - http://localhost:8765/api/data shows the raw JSON the server built from Airtable (`"source":"airtable"`).
+- http://localhost:8765/api/weather shows the weather the server got from OpenWeatherMap.
 - Change a product's `qty_CMH` to `0` in Airtable, wait about a minute (the server reads Airtable at most once a minute) and refresh: the **Out of stock** count goes up by one.
 
 ### If something goes wrong
@@ -109,6 +116,7 @@ You should see `Kivo dashboard on http://localhost:8765 (data from Airtable base
 | `Set AIRTABLE_TOKEN and AIRTABLE_BASE_ID in .env` | `.env` is missing or a value is empty | Create `.env` from `.env.example` (step 3) |
 | `Airtable ... -> 401` or `403` | Wrong token, or missing scopes | Check the token and its scopes (step 2) |
 | `Airtable ... -> 404 NOT_FOUND` | Wrong base ID, or the token has no access to the base | Fix `AIRTABLE_BASE_ID`; add the Kivo base to the token's access list |
+| Weather panel says "Weather unavailable" | `OPENWEATHER_API_KEY` missing, wrong, or not active yet (the server terminal shows `OpenWeatherMap 401`) | Check the key in `.env`; a new key can take up to 2 hours |
 | Page says "Couldn't load dashboard data" | The server is not running, or it can't read Airtable | Start `node server.mjs` and read the error in its terminal |
 
 ### About the data
@@ -133,6 +141,7 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `css/styles.css` | All styles, in `@layer`s, with every design token as a CSS variable |
 | `js/main.js` | Entry point: loads data, wires controls, renders on state change |
 | `js/data.js` | Loads data from `api/data` (Airtable only, no fallback) and validates it |
+| `js/weather.js` | Warehouse weather: maps the OpenWeatherMap response, decides "may delay shipments", renders the panel |
 | `js/airtable-map.js` | Converts the data set to Airtable records and back; picks the free-plan subset |
 | `js/state.js` | App state with subscribe/notify, and the `#wh=` URL hash |
 | `js/metrics.js` | Pure functions for every metric formula in SPEC.md §7.1 |
@@ -144,7 +153,7 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `scripts/generate-data.js` | Seeded data generator, input for the Airtable seed and the tests (prints JSON) |
 | `scripts/seed-airtable.mjs` | Creates the Airtable tables, upserts the data subset, deletes stale records |
 | `scripts/airtable.mjs` | Tiny Airtable API client; reads the token from `.env` |
-| `server.mjs` | Local server: serves the site and `GET /api/data` from Airtable |
+| `server.mjs` | Local server: serves the site, `GET /api/data` from Airtable and `GET /api/weather` from OpenWeatherMap |
 | `.env.example` | Template for `.env` (names only, no secret values) |
 | `tests/run-tests.mjs` | Node tests |
 | `tests/tests.html` | Browser tests |
