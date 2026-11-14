@@ -330,5 +330,13 @@ test('§7.6 weather: the API key is only read on the server, never in browser co
   ok(readFileSync(join(root, 'server.mjs'), 'utf8').includes('process.env.OPENWEATHER_API_KEY'), 'server must read the key from the environment');
 });
 
+test('§5.6 icons are the Lucide set: every sprite icon uses 24 × 24 and Lucide shapes', () => {
+  const html = readFileSync(join(root, 'index.html'), 'utf8');
+  ok(html.includes('Lucide'), 'licence comment');
+  ok(html.includes('<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'), 'clock is Lucide');
+  ok(html.includes('<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'), 'search is Lucide');
+  ok(/@media \(min-width: 3840px\) \{ :root \{ --zoom: 1\.6/.test(readFileSync(join(root, 'css/styles.css'), 'utf8')), '4K zoom');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
