@@ -251,5 +251,44 @@ test('M8: data-as-of text formats to "Nov 7, 2026, 8:00 AM ET"', () => {
   eq(fmt.asOf(data.meta.generated_at), 'Nov 7, 2026, 8:00 AM ET');
 });
 
+// ---------- §7.5 Airtable data source ----------
+const at = await import(pathToFileURL(join(root, 'js/airtable-map.js')).href);
+test('§7.5 Airtable subset fits the free plan (≤ 1,000 records) and keeps every out/low SKU', () => {
+  const sub = at.selectSubset(data);
+  const recs = at.toRecords(sub);
+  const total = Object.values(recs).reduce((s, r) => s + r.length, 0);
+  ok(total <= 1000, `total ${total}`);
+  const kept = new Set(sub.products.map((p) => p.sku));
+  for (const r of data.stock) if (r.qty_on_hand <= r.reorder_point) ok(kept.has(r.sku), `${r.sku} dropped`);
+  const k = m.kpis(sub, m.ALL);
+  eq(k.out, 9, 'out');
+  eq(k.low, 31, 'low');
+  const full = m.kpis(data, m.ALL);
+  ok(Math.abs(k.stockValueMoM - full.stockValueMoM) < 5, `MoM ${k.stockValueMoM} vs ${full.stockValueMoM}`);
+});
+test('§7.5 Airtable round trip: toRecords → fromRecords rebuilds the same data set', () => {
+  const sub = at.selectSubset(data);
+  const back = at.fromRecords(JSON.parse(JSON.stringify(at.toRecords(sub))));
+  eq(back.meta.source, 'airtable');
+  eq(back.products.length, sub.products.length, 'products');
+  eq(back.stock.length, sub.stock.length, 'stock');
+  eq(back.stock_history.length, sub.stock_history.length, 'history');
+  eq(back.shipments.length, sub.shipments.length, 'shipments');
+  const key = (r) => `${r.sku}|${r.warehouse}|${r.qty_on_hand}|${r.reorder_point}`;
+  eq(back.stock.map(key).sort().join(), sub.stock.map(key).sort().join(), 'stock rows');
+  eq(JSON.stringify(back.shipments[0].lines), JSON.stringify(sub.shipments[0].lines), 'lines');
+  ok(Math.abs(m.kpis(back, m.ALL).stockValue - m.kpis(sub, m.ALL).stockValue) < 0.01, 'stock value');
+});
+test('§7.5 base ID is parsed from a bare ID or a pasted URL', () => {
+  eq(at.parseBaseId('appAbCdEfGh1234567'.slice(0, 17)), 'appAbCdEfGh123456');
+  eq(at.parseBaseId('https://airtable.com/appAbCdEfGh123456/tblXyz/viwAbc'), 'appAbCdEfGh123456');
+  eq(at.parseBaseId('your-base-id-here'), null);
+});
+test('§7.5 the token is never in browser code or committed files: only in .env (git-ignored)', () => {
+  ok(readFileSync(join(root, '.gitignore'), 'utf8').split(/\r?\n/).includes('.env'), '.env not ignored');
+  for (const f of readdirSync(join(root, 'js'))) ok(!/AIRTABLE_TOKEN|\bpat[A-Za-z0-9]{10,}/.test(readFileSync(join(root, 'js', f), 'utf8')), `js/${f}`);
+  ok(/BLOCKED = .*\\\.env/.test(readFileSync(join(root, 'server.mjs'), 'utf8')), 'server must refuse to serve .env');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -39,12 +39,12 @@ At a glance, it answers three questions:
 
 ## 2. What it is / What it is not
 
-**IT IS:** a read-only, single-page dashboard that shows Kivo's inventory and shipment status from a fixed mock data set. Users can filter, search, sort and switch views. The page never changes the data. It is a decision aid for the morning review and for on-floor checks.
+**IT IS:** a read-only, single-page dashboard that shows Kivo's inventory and shipment status from an Airtable database (§7.5), with a fixed mock data set as the fallback. Users can filter, search, sort and switch views. The page never changes the data. It is a decision aid for the morning review and for on-floor checks.
 
 **IT IS NOT:**
 
 - ❌ No login, user accounts, roles or permissions. Everyone sees the same screen.
-- ❌ No real database, API, backend or live data feed. All numbers come from `data/mock-data.json`.
+- ❌ No writes from the dashboard. Data is read from the Airtable base "Kivo" through the local server (`server.mjs`, `GET /api/data`, §7.5). With no server (e.g. GitHub Pages) it falls back to `data/mock-data.json`. No other database, API or live feed.
 - ❌ No editing of any data: no changing quantities, reorder points, prices, statuses or ETAs.
 - ❌ **Not a purchasing system:** no placing, approving or sending purchase orders. No "Order" or "Reorder" button that pretends to buy anything.
 - ❌ Not a warehouse management system (WMS): no bin locations, pick lists, barcode scanning or stock transfers.
@@ -117,7 +117,7 @@ At a glance, it answers three questions:
 
 | ID | Feature |
 |----|---------|
-| L1 | As an **operations manager**, I can see **real WMS/ERP data** instead of mock data. |
+| L1 | As an **operations manager**, I can see **real WMS/ERP data** instead of mock data. (First step done for Exercise 4: the data now comes from an Airtable database, §7.5.) |
 | L2 | As a **buyer**, I get **reorder quantity suggestions** based on 90-day demand. |
 | L3 | As a **buyer**, I can see **supplier performance** (lead time, fill rate). |
 | L4 | As a **warehouse supervisor**, I can **install the dashboard as a PWA** on the tablet. |
@@ -539,6 +539,21 @@ The mock data must behave like an **established business running since 2019**, n
   - Customers appear only as city + state.
   - If any email ever appears, it uses `@example.com`.
 
+### 7.5 Airtable data source (Exercise 4)
+
+- **Base "Kivo"**, five tables. The first field of each is its stable key; every write is an upsert on it, so the seed can run twice without doubling anything:
+  - `Meta` (`key`): `generated_at`, `seed`, `currency`, `locale`. One record.
+  - `Warehouses` (`id`): `name`, `timezone`. 3 records.
+  - `Products` (`sku`): `name`, `category`, `unit_cost`, `supplier`, `lead_time_days`, and per warehouse `qty_CMH`/`reorder_CMH`, `qty_RNO`/`reorder_RNO`, `qty_ATL`/`reorder_ATL` (blank = SKU not stocked there). 250 records.
+  - `Shipments` (`id`): the §7.2 fields, `lines` as JSON text. 700 records.
+  - `StockHistory` (`date`): `rows` as JSON text (warehouse, category, value). 37 records.
+- **Free-plan limit:** a base holds about 1,000 records, so the base gets a subset (991 records): every out/low SKU first, then by SKU; open shipments first, then the latest delivered. History is scaled to the subset's share of today's value so month-over-month stays true. The KPI snapshot targets for Out (9) and Low (31) still hold.
+- **Mapping:** `js/airtable-map.js` (pure, shared by server, seed and tests) turns records back into exactly the §7.2 shape, plus `meta.source = "airtable"`.
+- **Seed:** `node scripts/seed-airtable.mjs` creates missing tables/fields and upserts the subset, then prints sent vs. stored per table (count in, count out).
+- **Server:** `node server.mjs` serves the site and `GET /api/data`, reading all tables (100 records per page, offset) at most once a minute. It refuses to serve `.env`, `.git`, `.claude`, `scripts/` and itself.
+- **Client:** `js/data.js` tries `api/data` first, then `data/mock-data.json`. The header badge says **Live · Airtable** or **Mock data** (same badge style).
+- **Keys:** `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` live only in `.env` (git-ignored; `.env.example` is committed with no values). The token never reaches the browser. Use a token scoped to this one base; if it leaks, revoke it and make a new one.
+
 ---
 
 ## 8. States & interaction
@@ -604,7 +619,7 @@ The mock data must behave like an **established business running since 2019**, n
   - `js/format.js`: `Intl.NumberFormat('en-US', {style:'currency', currency:'USD'})`, compact notation, and `Intl.DateTimeFormat`
   - `js/main.js`
 - **Charts:** hand-built inline SVG. No chart library.
-- **Test seam:** `js/data.js` accepts `?data=<file>.json` (a file name inside `data/` only) so `tests/tests.html` can simulate a failed load. It is not linked anywhere in the UI.
+- **Test seam:** `js/data.js` accepts `?data=<file>.json` (a file name inside `data/` only) so `tests/tests.html` can simulate a failed load and always test against the full mock data set (it skips `api/data`). It is not linked anywhere in the UI.
 - **File structure:**
   ```
   index.html
@@ -612,7 +627,8 @@ The mock data must behave like an **established business running since 2019**, n
   js/*.js
   data/mock-data.json
   assets/logo.svg, logo-icon.svg, logo.png
-  scripts/generate-data.js
+  scripts/generate-data.js, scripts/seed-airtable.mjs, scripts/airtable.mjs
+  server.mjs, js/airtable-map.js, .env.example
   tests/tests.html + tests/run-tests.mjs (Node, no dependencies)
   README.md, SPEC.md, Practice.md, CLAUDE.md
   ```
