@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-// Kivo mock data generator. Node >= 18, no dependencies.
-// Same seed => byte-identical data/mock-data.json. See SPEC.md §7.4.
-const { writeFileSync, mkdirSync } = require('node:fs');
-const { dirname, join } = require('node:path');
+// Kivo seed data generator. Node >= 18, no dependencies.
+// Prints the data set as JSON to stdout (no file is written). Same seed => byte-identical output.
+// It is the input for scripts/seed-airtable.mjs and for the Node tests. See SPEC.md §7.4.
 
 const SEED = 20261107;
 const TODAY = '2026-11-07';
@@ -324,7 +323,4 @@ const data = {
   shipments,
 };
 
-const out = join(__dirname, '..', 'data', 'mock-data.json');
-mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, JSON.stringify(data));
-console.log(`Wrote ${out}: ${products.length} products, ${stock.length} stock rows, ${shipments.length} shipments, ${stock_history.length} history rows.`);
+process.stdout.write(JSON.stringify(data));

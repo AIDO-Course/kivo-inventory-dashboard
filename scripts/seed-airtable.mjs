@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// One-time (and safe to re-run) upload of the mock data subset to Airtable. SPEC §7.5.
+// One-time (and safe to re-run) upload of the generated data subset to Airtable. SPEC §7.5.
 // Usage: node scripts/seed-airtable.mjs
-// Creates any missing tables/fields, then upserts every record on its primary key,
-// so running it twice gives exactly the same base (idempotent).
-import { readFileSync } from 'node:fs';
+// Creates any missing tables/fields, upserts every record on its primary key and deletes records
+// that are no longer in the data set, so running it twice gives exactly the same base (idempotent).
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { loadEnv, client, root } from './airtable.mjs';
 import { TABLES, selectSubset, toRecords } from '../js/airtable-map.js';
@@ -19,7 +19,7 @@ function fieldDef(name) {
 }
 
 const at = client(loadEnv());
-const data = JSON.parse(readFileSync(join(root, 'data/mock-data.json'), 'utf8'));
+const data = JSON.parse(execFileSync(process.execPath, [join(root, 'scripts/generate-data.js')], { maxBuffer: 64 << 20 }));
 const records = toRecords(selectSubset(data));
 
 // 1. Schema: create missing tables and fields.
@@ -42,11 +42,13 @@ for (const [name, fields] of Object.entries(TABLES)) {
   }
 }
 
-// 2. Records: upsert on the primary key. Count in, count out.
+// 2. Records: upsert on the primary key, delete the rest. Count in, count out.
 let total = 0;
 for (const [name, fields] of Object.entries(TABLES)) {
   const rows = records[name];
   await at.upsert(name, fields[0], rows);
+  const removed = await at.deleteMissing(name, fields[0], new Set(rows.map((r) => r[fields[0]])));
+  if (removed) console.log(`${name}: deleted ${removed} records no longer in the data set`);
   const back = await at.listAll(name);
   total += back.length;
   const status = back.length === rows.length ? 'OK' : 'MISMATCH';

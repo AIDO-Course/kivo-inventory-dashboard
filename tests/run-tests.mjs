@@ -1,6 +1,6 @@
 // Node tests, no dependencies:  node tests/run-tests.mjs
 // Each test maps to a "Done means" line in SPEC.md §11.
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { join, dirname, extname } from 'node:path';
@@ -12,8 +12,10 @@ const t = await import(pathToFileURL(join(root, 'js/tables.js')).href);
 const c = await import(pathToFileURL(join(root, 'js/chart.js')).href);
 const fmt = await import(pathToFileURL(join(root, 'js/format.js')).href);
 
-const dataPath = join(root, 'data/mock-data.json');
-const data = JSON.parse(readFileSync(dataPath, 'utf8'));
+// The generator's output is the fixture (it is also what scripts/seed-airtable.mjs uploads).
+const generate = () => execFileSync(process.execPath, [join(root, 'scripts/generate-data.js')], { maxBuffer: 64 << 20 });
+const rawData = generate();
+const data = JSON.parse(rawData);
 const TODAY = m.today(data);
 
 let pass = 0;
@@ -142,11 +144,10 @@ test('M6 text summary names the largest group', () => {
   ok(c.summaryText(rows).startsWith(top.name), c.summaryText(rows));
 });
 
-// ---------- Mock data ----------
+// ---------- Generated data ----------
 test('Data: generator is deterministic (byte-identical output)', () => {
-  const before = createHash('sha256').update(readFileSync(dataPath)).digest('hex');
-  execFileSync(process.execPath, [join(root, 'scripts/generate-data.js')], { stdio: 'ignore' });
-  const after = createHash('sha256').update(readFileSync(dataPath)).digest('hex');
+  const before = createHash('sha256').update(rawData).digest('hex');
+  const after = createHash('sha256').update(generate()).digest('hex');
   eq(after, before);
 });
 test('Data: 642 products, 1,410 stock rows, 26,000 ± 2% shipments, 555 history rows', () => {
@@ -187,7 +188,7 @@ test('Data: lateness about 8% overall (7–9%), Harbor & Pine about 15% (13–17
   ok(winter >= 12 && winter <= 16, `Dec-Jan ${winter.toFixed(1)}%`);
 });
 test('Data: no real brand names (whole word)', () => {
-  const text = readFileSync(dataPath, 'utf8');
+  const text = rawData.toString('utf8');
   const brands = ['HP', 'Canon', 'Epson', 'Brother', 'Dell', 'Lenovo', 'Logitech', 'Apple', 'Samsung', 'Staples', 'FedEx', 'UPS', 'USPS', 'DHL', 'Microsoft', 'Cisco', 'Netgear', 'Xerox', 'Avery', 'Sharpie', 'Post-it', 'Herman Miller', 'Steelcase', 'IKEA'];
   for (const b of brands) ok(!new RegExp(`\\b${b}\\b`, 'i').test(text), `found brand ${b}`);
 });
@@ -265,6 +266,10 @@ test('§7.5 Airtable subset fits the free plan (≤ 1,000 records) and keeps eve
   eq(k.low, 31, 'low');
   const full = m.kpis(data, m.ALL);
   ok(Math.abs(k.stockValueMoM - full.stockValueMoM) < 5, `MoM ${k.stockValueMoM} vs ${full.stockValueMoM}`);
+  eq(k.inTransit, full.inTransit, 'in transit');
+  eq(k.late, full.late, 'late');
+  ok(Math.abs(m.onTimePct(sub) - m.onTimePct(data)) < 3, // a sample: ~240 deliveries in the window
+     `on-time ${m.onTimePct(sub)} vs ${m.onTimePct(data)}`);
 });
 test('§7.5 Airtable round trip: toRecords → fromRecords rebuilds the same data set', () => {
   const sub = at.selectSubset(data);
@@ -288,6 +293,13 @@ test('§7.5 the token is never in browser code or committed files: only in .env 
   ok(readFileSync(join(root, '.gitignore'), 'utf8').split(/\r?\n/).includes('.env'), '.env not ignored');
   for (const f of readdirSync(join(root, 'js'))) ok(!/AIRTABLE_TOKEN|\bpat[A-Za-z0-9]{10,}/.test(readFileSync(join(root, 'js', f), 'utf8')), `js/${f}`);
   ok(/BLOCKED = .*\\\.env/.test(readFileSync(join(root, 'server.mjs'), 'utf8')), 'server must refuse to serve .env');
+});
+
+test('§7.5 the dashboard reads only from Airtable: no static data file and no fallback in js/data.js', () => {
+  ok(!existsSync(join(root, 'data')), 'data/ folder still exists');
+  const src = readFileSync(join(root, 'js/data.js'), 'utf8');
+  ok(!/\.json['"`]/.test(src) && !/mock/i.test(src), 'js/data.js still references a JSON file');
+  ok(src.includes("'api/data'"), 'js/data.js must load api/data');
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

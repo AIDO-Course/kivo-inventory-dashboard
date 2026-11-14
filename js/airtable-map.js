@@ -2,7 +2,7 @@
 // Pure functions, no DOM and no network, so the server, the seed script and the tests share them.
 
 // Airtable free plan: about 1,000 records per base. These caps keep the whole base under that.
-export const LIMITS = { products: 250, shipments: 700 };
+export const LIMITS = { products: 250, shipments: 700, scheduled: 100 };
 export const WAREHOUSE_IDS = ['CMH', 'RNO', 'ATL'];
 
 // Table name -> [primary field, ...other fields]. The primary field is the stable key
@@ -24,7 +24,18 @@ export function parseBaseId(value) {
   return m ? m[0] : null;
 }
 
-const isOpenShipment = (s) => s.status === 'in_transit' || s.status === 'scheduled';
+// FNV-1a: a stable pseudo-random number per ID, so the sample is the same on every run.
+function hash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
+}
+
+function addDaysIso(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 /** Picks the subset that goes to Airtable: risky SKUs first, open shipments first. */
 export function selectSubset(data, limits = LIMITS) {
@@ -40,11 +51,20 @@ export function selectSubset(data, limits = LIMITS) {
     .slice(0, limits.products);
   const skus = new Set(products.map((p) => p.sku));
 
-  const open = data.shipments.filter(isOpenShipment).sort((a, b) => a.eta.localeCompare(b.eta));
-  const delivered = data.shipments
-    .filter((s) => s.status === 'delivered' && s.delivered_at <= today)
-    .sort((a, b) => b.delivered_at.localeCompare(a.delivered_at));
-  const shipments = [...open, ...delivered].slice(0, limits.shipments).map((s) => {
+  // Shipments: every in-transit one (KPIs, late list), the next scheduled ones, and a random
+  // (but fixed) sample of the last 60 days of deliveries, so on-time % and its 30-day delta stay true.
+  const inTransit = data.shipments.filter((s) => s.status === 'in_transit');
+  const scheduled = data.shipments
+    .filter((s) => s.status === 'scheduled')
+    .sort((a, b) => a.ship_date.localeCompare(b.ship_date) || a.id.localeCompare(b.id))
+    .slice(0, limits.scheduled);
+  const from = addDaysIso(today, -60);
+  const recent = data.shipments
+    .filter((s) => s.status === 'delivered' && s.delivered_at > from && s.delivered_at <= today)
+    .sort((a, b) => hash(a.id) - hash(b.id) || a.id.localeCompare(b.id)); // deterministic random order
+  const room = Math.max(0, limits.shipments - inTransit.length - scheduled.length);
+  const delivered = recent.slice(0, room);
+  const shipments = [...inTransit, ...scheduled, ...delivered].map((s) => {
     const lines = s.lines.filter((l) => skus.has(l.sku));
     return { ...s, lines: lines.length ? lines : s.lines.slice(0, 1) };
   });

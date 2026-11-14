@@ -57,6 +57,26 @@ export function client({ token, baseId }) {
       } while (offset);
       return out;
     },
+    /** Deletes every record whose key field is not in `keep`. Returns how many were deleted. */
+    async deleteMissing(table, key, keep) {
+      const stale = [];
+      let offset;
+      do {
+        const q = new URLSearchParams({ pageSize: '100' });
+        q.append('fields[]', key);
+        if (offset) q.set('offset', offset);
+        const j = await call(`${baseId}/${encodeURIComponent(table)}?${q}`);
+        for (const r of j.records) if (!keep.has(r.fields[key])) stale.push(r.id);
+        offset = j.offset;
+      } while (offset);
+      for (let i = 0; i < stale.length; i += 10) {
+        const q = new URLSearchParams();
+        for (const id of stale.slice(i, i + 10)) q.append('records[]', id);
+        await call(`${baseId}/${encodeURIComponent(table)}?${q}`, { method: 'DELETE' });
+        await sleep(220);
+      }
+      return stale.length;
+    },
     /** Upsert in batches of 10 (Airtable's max), merging on the primary key. */
     async upsert(table, key, rows) {
       for (let i = 0; i < rows.length; i += 10) {

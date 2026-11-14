@@ -1,6 +1,6 @@
 # Kivo: Inventory & Logistics Dashboard
 
-**Kivo** is a US wholesale distributor of office supplies and electronics. It stocks about 640 products in three warehouses and ships them to business customers (schools, offices, resellers). This dashboard gives Kivo's operations team one desktop-first screen with the state of stock and shipments. It runs on **mock data only**, frozen at a fixed point in time.
+**Kivo** is a US wholesale distributor of office supplies and electronics. It stocks about 640 products in three warehouses and ships them to business customers (schools, offices, resellers). This dashboard gives Kivo's operations team one desktop-first screen with the state of stock and shipments. Its data comes from an **Airtable database** (§7.5), filled from a generated data set frozen at a fixed point in time.
 
 At a glance, it answers three questions:
 
@@ -39,12 +39,12 @@ At a glance, it answers three questions:
 
 ## 2. What it is / What it is not
 
-**IT IS:** a read-only, single-page dashboard that shows Kivo's inventory and shipment status from an Airtable database (§7.5), with a fixed mock data set as the fallback. Users can filter, search, sort and switch views. The page never changes the data. It is a decision aid for the morning review and for on-floor checks.
+**IT IS:** a read-only, single-page dashboard that shows Kivo's inventory and shipment status from an Airtable database (§7.5). There is no static data file. Users can filter, search, sort and switch views. The page never changes the data. It is a decision aid for the morning review and for on-floor checks.
 
 **IT IS NOT:**
 
 - ❌ No login, user accounts, roles or permissions. Everyone sees the same screen.
-- ❌ No writes from the dashboard. Data is read from the Airtable base "Kivo" through the local server (`server.mjs`, `GET /api/data`, §7.5). With no server (e.g. GitHub Pages) it falls back to `data/mock-data.json`. No other database, API or live feed.
+- ❌ No writes from the dashboard. Data is read from the Airtable base "Kivo" through the local server (`server.mjs`, `GET /api/data`, §7.5). There is no static fallback: without the server (e.g. on GitHub Pages) the page shows the load-error state. No other database, API or live feed.
 - ❌ No editing of any data: no changing quantities, reorder points, prices, statuses or ETAs.
 - ❌ **Not a purchasing system:** no placing, approving or sending purchase orders. No "Order" or "Reorder" button that pretends to buy anything.
 - ❌ Not a warehouse management system (WMS): no bin locations, pick lists, barcode scanning or stock transfers.
@@ -103,7 +103,7 @@ At a glance, it answers three questions:
 | M5 | As a **warehouse supervisor**, I can browse a **Shipments list** with direction (inbound/outbound), status and ETA, filtered by status and direction and sorted by ETA. Late shipments sort first by default. This way I can plan receiving and chase late trucks. |
 | M6 | As an **operations manager**, I can see a **Stock value chart**, switchable between **by category** and **by warehouse**. This way I see where our money sits. |
 | M7 | As any user, I can open a **row-detail dialog** for any SKU or shipment and see every field, including fields hidden on small screens. |
-| M8 | As any user, I can see **"Data as of Nov 7, 2026, 8:00 AM ET · Mock data"** in the header, so I never mistake this for live numbers. |
+| M8 | As any user, I can see **"Data as of Nov 7, 2026, 8:00 AM ET · Live · Airtable"** in the header, so I know the date and the source of the numbers. |
 
 ### Should (v1.1, NOT built in v1)
 
@@ -249,7 +249,7 @@ Hand-made inline SVG icons in a single `<svg>` sprite, 24 × 24 viewBox, 2 px st
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
 │ [kivo logo 40px]  Overview · Inventory · Shipments    Data as of Nov 7, 2026, 8:00 AM ET │
-│                                                        · Mock data   [Warehouse: All ▾] │  ← Header, white, sticky, 72px
+│                                                  · Live · Airtable   [Warehouse: All ▾] │  ← Header, white, sticky, 72px
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ ⛔ 9 SKUs out of stock · ⚠ 31 low · ⏱ 14 shipments late          [View alerts →]     │  ← Alerts strip (only if any)
 ├──────────────────────────────────────────────────────────────────────────────────────┤
@@ -296,7 +296,7 @@ The warehouse switcher (M2) is a header-level control that changes **every** num
 - **Contents, left to right:**
   - logo (40 px)
   - section links "Overview · Inventory · Shipments" (anchor links, 44 px tall, 16 px, `--ink-600`; the active one is `--teal-700` with a 3 px `--teal-700` bottom bar, set by IntersectionObserver)
-  - "Data as of …" caption (13 px, `--ink-600`), with a "Mock data" badge (`--teal-50` background, `--teal-700` text)
+  - "Data as of …" caption (13 px, `--ink-600`), with a "Live · Airtable" badge (`--teal-50` background, `--teal-700` text)
   - warehouse switcher: a native `<select>`, 44 px tall, minimum width 200 px, label "Warehouse"
 - **Phone:** logo and data caption on row 1, switcher full width on row 2, and section tabs in a sticky bar on row 3.
 
@@ -504,9 +504,9 @@ The 3 warehouses are `CMH` Columbus OH (hub, about 45% of stock), `RNO` Reno NV 
 }
 ```
 
-### 7.4 Mock data (full data set)
+### 7.4 Generated data set (input for the Airtable base)
 
-The mock data must behave like an **established business running since 2019**, not like a demo with 40 rows.
+The generated data must behave like an **established business running since 2019**, not like a demo with 40 rows.
 
 - **Date range:** shipments from **2023-11-01 to 2026-11-07** (3 years + 1 week), plus scheduled shipments up to **2026-11-28**. `stock_history`: 37 monthly snapshots (2023-11-07 … 2026-11-07) × 3 warehouses × 5 categories = **555 rows**.
 - **Volume (exact):**
@@ -533,7 +533,7 @@ The mock data must behave like an **established business running since 2019**, n
   - **Stock value growth:** gradual, about 6% per year, with a dip each January after year-end.
 - **Generation:**
   - `scripts/generate-data.js` is Node ≥ 18 with **no dependencies**. It uses a seeded PRNG (mulberry32, seed `20261107`). The same seed produces byte-identical output.
-  - It writes `data/mock-data.json`. Both files are committed. The site only reads the JSON, so there is no build step.
+  - It prints the data set as JSON to stdout; no data file is written or committed. `scripts/seed-airtable.mjs` and the Node tests use its output. The site never reads it: the site reads Airtable (§7.5).
 - **Privacy:** no real people, companies, brands, addresses, phone numbers or IDs.
   - Supplier, carrier and product names are invented and generic.
   - Customers appear only as city + state.
@@ -545,13 +545,13 @@ The mock data must behave like an **established business running since 2019**, n
   - `Meta` (`key`): `generated_at`, `seed`, `currency`, `locale`. One record.
   - `Warehouses` (`id`): `name`, `timezone`. 3 records.
   - `Products` (`sku`): `name`, `category`, `unit_cost`, `supplier`, `lead_time_days`, and per warehouse `qty_CMH`/`reorder_CMH`, `qty_RNO`/`reorder_RNO`, `qty_ATL`/`reorder_ATL` (blank = SKU not stocked there). 250 records.
-  - `Shipments` (`id`): the §7.2 fields, `lines` as JSON text. 700 records.
+  - `Shipments` (`id`): the §7.2 fields, `lines` as JSON text. 700 records: all in transit, the next 100 scheduled, and a fixed random sample of the last 60 days of deliveries.
   - `StockHistory` (`date`): `rows` as JSON text (warehouse, category, value). 37 records.
-- **Free-plan limit:** a base holds about 1,000 records, so the base gets a subset (991 records): every out/low SKU first, then by SKU; open shipments first, then the latest delivered. History is scaled to the subset's share of today's value so month-over-month stays true. The KPI snapshot targets for Out (9) and Low (31) still hold.
+- **Free-plan limit:** a base holds about 1,000 records, so the base gets a subset (991 records): every out/low SKU first, then by SKU; in-transit and next scheduled shipments, plus a sample of recent deliveries so on-time % stays close (within ~3 pts). History is scaled to the subset's share of today's value so month-over-month stays true. The KPI snapshot targets for Out (9) and Low (31) still hold.
 - **Mapping:** `js/airtable-map.js` (pure, shared by server, seed and tests) turns records back into exactly the §7.2 shape, plus `meta.source = "airtable"`.
-- **Seed:** `node scripts/seed-airtable.mjs` creates missing tables/fields and upserts the subset, then prints sent vs. stored per table (count in, count out).
+- **Seed:** `node scripts/seed-airtable.mjs` creates missing tables/fields, upserts the subset, deletes records no longer in it, then prints sent vs. stored per table (count in, count out).
 - **Server:** `node server.mjs` serves the site and `GET /api/data`, reading all tables (100 records per page, offset) at most once a minute. It refuses to serve `.env`, `.git`, `.claude`, `scripts/` and itself.
-- **Client:** `js/data.js` tries `api/data` first, then `data/mock-data.json`. The header badge says **Live · Airtable** or **Mock data** (same badge style).
+- **Client:** `js/data.js` loads only `api/data`. There is no static fallback; if it fails, the §8 error banner shows. The header badge says **Live · Airtable**.
 - **Keys:** `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` live only in `.env` (git-ignored; `.env.example` is committed with no values). The token never reaches the browser. Use a token scoped to this one base; if it leaks, revoke it and make a new one.
 
 ---
@@ -564,7 +564,7 @@ The mock data must behave like an **established business running since 2019**, n
 | **Empty (filters)** | Inside the table card: a 24 px search icon and a message, with a secondary button. | "No products match these filters." + **[Clear filters]** · Shipments: "No shipments match these filters." + **[Clear filters]** |
 | **Empty (alerts)** | Panel text in `--green-700` with a ✓ icon. | "✓ Nothing below reorder point." |
 | **Error** | A banner under the header: `--red-50` background, `--red-700` text and icon, with a **[Retry]** primary button. If data was loaded before, the last numbers stay visible and a "Stale" badge (`--amber-50` / `--amber-800`) appears next to "Data as of". | "Couldn't load the latest data. Showing the last loaded numbers." / (first load) "Couldn't load dashboard data." + **[Retry]** |
-| **Data as of** | Always in the header. | "Data as of Nov 7, 2026, 8:00 AM ET · Mock data" (from `meta.generated_at`, formatted with `Intl.DateTimeFormat('en-US')`) |
+| **Data as of** | Always in the header. | "Data as of Nov 7, 2026, 8:00 AM ET · Live · Airtable" (from `meta.generated_at`, formatted with `Intl.DateTimeFormat('en-US')`) |
 
 **Interaction:**
 - The warehouse switcher, all filters, search, sort, paging and chart toggles update the page **without a reload**, in under 100 ms on desktop.
@@ -619,13 +619,12 @@ The mock data must behave like an **established business running since 2019**, n
   - `js/format.js`: `Intl.NumberFormat('en-US', {style:'currency', currency:'USD'})`, compact notation, and `Intl.DateTimeFormat`
   - `js/main.js`
 - **Charts:** hand-built inline SVG. No chart library.
-- **Test seam:** `js/data.js` accepts `?data=<file>.json` (a file name inside `data/` only) so `tests/tests.html` can simulate a failed load and always test against the full mock data set (it skips `api/data`). It is not linked anywhere in the UI.
+- **Test seam:** `js/data.js` accepts `?api=missing` so `tests/tests.html` can simulate a failed load. It is not linked anywhere in the UI. The browser tests run against the server and compute their expected numbers from `api/data`.
 - **File structure:**
   ```
   index.html
   css/styles.css
   js/*.js
-  data/mock-data.json
   assets/logo.svg, logo-icon.svg, logo.png
   scripts/generate-data.js, scripts/seed-airtable.mjs, scripts/airtable.mjs
   server.mjs, js/airtable-map.js, .env.example
@@ -651,7 +650,7 @@ Each line can pass or fail. These become the tests (`tests/`) and the Prompt 5 a
 
 **M1: KPI tiles**
 - [ ] Exactly 7 tiles appear, in the §6.3 order, with the §6.3 labels.
-- [ ] With "All warehouses", the values equal the §7.1 formulas computed from `data/mock-data.json`. The tests compute them independently, and the snapshot targets in §7.4 hold (Out = 9, Low = 31, In transit = 58, Late = 14).
+- [ ] With "All warehouses", the values equal the §7.1 formulas computed from the data set (generated data in the Node tests, `api/data` in the browser tests). The tests compute them independently, and the snapshot targets in §7.4 hold (Out = 9, Low = 31, In transit = 58, Late = 14).
 - [ ] Every delta shows an arrow **and** a sign; on-time delta is in "pts".
 
 **M2: Warehouse switcher**
@@ -682,14 +681,14 @@ Each line can pass or fail. These become the tests (`tests/`) and the Prompt 5 a
 - [ ] At 375 px, the Supplier and Unit cost (hidden table columns) are visible in the dialog.
 
 **M8: Data as of**
-- [ ] The header shows "Data as of Nov 7, 2026, 8:00 AM ET · Mock data".
+- [ ] The header shows "Data as of Nov 7, 2026, 8:00 AM ET · Live · Airtable".
 
 **States**
 - [ ] A filter with no results shows the exact empty text from §8 and a working [Clear filters] button.
-- [ ] If the JSON fails to load (simulated), the error banner shows the §8 text and [Retry] reloads the data.
+- [ ] If the data fails to load (simulated), the error banner shows the §8 text and [Retry] reloads the data.
 
-**Mock data**
-- [ ] `node scripts/generate-data.js` run twice produces byte-identical `data/mock-data.json`.
+**Generated data**
+- [ ] `node scripts/generate-data.js` run twice produces byte-identical output.
 - [ ] Shipments cover 2023-11-01 … 2026-11-07, the count is 26,000 ± 2%, there are 642 products and 1,410 stock rows, and no Sunday shipments.
 - [ ] No string in the data matches a real-brand blocklist (e.g. HP, Canon, Dell, Logitech, Staples, FedEx, UPS, USPS) as a whole word.
 

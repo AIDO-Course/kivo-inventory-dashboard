@@ -4,7 +4,7 @@
 
 A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of office supplies and electronics with warehouses in Columbus OH, Reno NV and Atlanta GA. It answers three questions at a glance: what is about to run out, which shipments are late, and how much stock value Kivo holds and where. It is a read-only decision aid for the operations manager, warehouse supervisors and buyers.
 
-**Status:** v1 + Exercise 4. Run locally with `node server.mjs`, the dashboard reads its data from an **Airtable** database (badge: *Live · Airtable*). On GitHub Pages there is no server, so it falls back to the mock JSON (badge: *Mock data*). All numbers are frozen at Nov 7, 2026, 8:00 AM ET.
+**Status:** v1 + Exercise 4. The dashboard reads its data **only from an Airtable database**, through a small local server (`node server.mjs`). There is no static data file. GitHub Pages can't run the server, so the live link shows the load-error state; run it locally to see the data. All numbers are frozen at Nov 7, 2026, 8:00 AM ET.
 
 **Live:** https://aido-course.github.io/kivo-inventory-dashboard/
 
@@ -19,7 +19,7 @@ A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of 
 - **Shipments list:** inbound and outbound shipments, late ones first with "(N days late)", filtered by direction and status.
 - **Stock value chart:** by category or by warehouse, in hand-built SVG, with a click/keyboard tooltip, a text summary and a "Show as table" view.
 - **Row-detail dialog:** every field of a SKU or shipment, including the columns hidden on smaller screens.
-- **"Data as of" caption** with a Mock data badge, plus loading, empty and error states.
+- **"Data as of" caption** with a *Live · Airtable* badge, plus loading, empty and error states.
 - **Responsive and accessible:** phone, tablet and desktop. All text meets AA contrast, touch targets are at least 44 px, keyboard navigation works, and reduced motion is respected.
 
 ## Not built yet
@@ -55,33 +55,19 @@ browser ──GET /api/data──▶ server.mjs ──Airtable API + token from 
    node server.mjs
    ```
 
-The free Airtable plan allows about 1,000 records per base, so the base holds a subset: 250 products (all low and out-of-stock ones included), 700 shipments (open ones first) and 37 monthly history snapshots.
+The free Airtable plan allows about 1,000 records per base, so the base holds a subset: 250 products (all low and out-of-stock ones included), 700 shipments (all in transit, the next 100 scheduled, and a sample of recent deliveries) and 37 monthly history snapshots.
 
-## Run it locally (mock data only)
-
-ES modules don't load from `file://`, so serve the folder:
-
-```bash
-python -m http.server 8765
-```
-
-Then open http://localhost:8765. If port 8765 is busy, use any other port.
-
-To regenerate the mock data (it comes out the same every time for the same seed):
-
-```bash
-node scripts/generate-data.js
-```
+The seed takes its input from `scripts/generate-data.js` (seeded, so it is the same every time). It prints JSON and writes no file.
 
 ## Tests
 
-Node tests check the metric formulas, the mock data rules, the palette and that no frameworks are used:
+Node tests check the metric formulas, the generated data rules, the Airtable mapping, the palette and that no frameworks are used:
 
 ```bash
 node tests/run-tests.mjs
 ```
 
-Browser tests check filters, sorting, the warehouse switch, the dialog, states, touch targets and no horizontal scroll at 320 to 1440 px. With the local server running, open http://localhost:8765/tests/tests.html.
+Browser tests check filters, sorting, the warehouse switch, the dialog, states, touch targets and no horizontal scroll at 320 to 1440 px. With `node server.mjs` running, open http://localhost:8765/tests/tests.html. Their expected numbers are computed from the same Airtable data.
 
 ## Files
 
@@ -90,7 +76,7 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `index.html` | The single page: header, overview, inventory, shipments, dialog |
 | `css/styles.css` | All styles, in `@layer`s, with every design token as a CSS variable |
 | `js/main.js` | Entry point: loads data, wires controls, renders on state change |
-| `js/data.js` | Loads data from `api/data` (Airtable), falling back to `data/mock-data.json`, and validates it |
+| `js/data.js` | Loads data from `api/data` (Airtable only, no fallback) and validates it |
 | `js/airtable-map.js` | Converts the data set to Airtable records and back; picks the free-plan subset |
 | `js/state.js` | App state with subscribe/notify, and the `#wh=` URL hash |
 | `js/metrics.js` | Pure functions for every metric formula in SPEC.md §7.1 |
@@ -99,9 +85,8 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `js/tables.js` | Inventory and shipments tables: filter, sort, page |
 | `js/dialog.js` | Row-detail dialog |
 | `js/format.js` | `Intl` number, currency and date formatting |
-| `data/mock-data.json` | Generated mock data (3 years of shipments, 642 products) |
-| `scripts/generate-data.js` | Seeded mock data generator (Node, no dependencies) |
-| `scripts/seed-airtable.mjs` | Creates the Airtable tables and upserts the data subset |
+| `scripts/generate-data.js` | Seeded data generator, input for the Airtable seed and the tests (prints JSON) |
+| `scripts/seed-airtable.mjs` | Creates the Airtable tables, upserts the data subset, deletes stale records |
 | `scripts/airtable.mjs` | Tiny Airtable API client; reads the token from `.env` |
 | `server.mjs` | Local server: serves the site and `GET /api/data` from Airtable |
 | `.env.example` | Template for `.env` (names only, no secret values) |
