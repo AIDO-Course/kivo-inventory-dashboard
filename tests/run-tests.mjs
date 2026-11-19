@@ -330,6 +330,15 @@ test('§7.6 weather: the API key is only read on the server, never in browser co
   ok(readFileSync(join(root, 'server.mjs'), 'utf8').includes('process.env.OPENWEATHER_API_KEY'), 'server must read the key from the environment');
 });
 
+test('§7.5 Pages build: keys come only from Actions secrets and never reach _site', () => {
+  const wf = readFileSync(join(root, '.github', 'workflows', 'deploy.yml'), 'utf8');
+  for (const k of ['AIRTABLE_TOKEN', 'AIRTABLE_BASE_ID', 'OPENWEATHER_API_KEY']) ok(wf.includes(`${k}: \${{ secrets.${k} }}`), `workflow passes ${k} from secrets`);
+  const build = readFileSync(join(root, 'scripts', 'build-site.mjs'), 'utf8');
+  ok(/'api', 'data'/.test(build) && /'api', 'weather'/.test(build), 'writes api/data and api/weather');
+  ok(!/\.env|scripts|server\.mjs/.test(build.match(/PUBLIC = \[[^\]]*\]/)[0]), 'never copies .env, scripts or server.mjs to _site');
+  ok(readFileSync(join(root, '.gitignore'), 'utf8').includes('_site/'), '_site/ is git-ignored');
+});
+
 test('§5.6 icons are the Lucide set: every sprite icon uses 24 × 24 and Lucide shapes', () => {
   const html = readFileSync(join(root, 'index.html'), 'utf8');
   ok(html.includes('Lucide'), 'licence comment');

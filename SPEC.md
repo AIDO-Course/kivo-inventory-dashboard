@@ -44,7 +44,7 @@ At a glance, it answers three questions:
 **IT IS NOT:**
 
 - ❌ No login, user accounts, roles or permissions. Everyone sees the same screen.
-- ❌ No writes from the dashboard. Data is read from the Airtable base "Kivo" through the local server (`server.mjs`, `GET /api/data`, §7.5). There is no static fallback: without the server (e.g. on GitHub Pages) the page shows the load-error state. No other database, API or live feed.
+- ❌ No writes from the dashboard. Data is read from the Airtable base "Kivo" through the local server (`server.mjs`, `GET /api/data`, §7.5). There is no static data file in the repo. On GitHub Pages, a GitHub Actions workflow reads the same base with keys from repo secrets and publishes the answer at the same `api/data` path (§7.5). No other database, API or live feed.
 - ❌ No editing of any data: no changing quantities, reorder points, prices, statuses or ETAs.
 - ❌ **Not a purchasing system:** no placing, approving or sending purchase orders. No "Order" or "Reorder" button that pretends to buy anything.
 - ❌ Not a warehouse management system (WMS): no bin locations, pick lists, barcode scanning or stock transfers.
@@ -553,8 +553,9 @@ The generated data must behave like an **established business running since 2019
 - **Mapping:** `js/airtable-map.js` (pure, shared by server, seed and tests) turns records back into exactly the §7.2 shape, plus `meta.source = "airtable"`.
 - **Seed:** `node scripts/seed-airtable.mjs` creates missing tables/fields, upserts the subset, deletes records no longer in it, then prints sent vs. stored per table (count in, count out).
 - **Server:** `node server.mjs` serves the site and `GET /api/data`, reading all tables (100 records per page, offset) at most once a minute. It refuses to serve `.env`, `.git`, `.claude`, `scripts/` and itself.
+- **GitHub Pages build:** `.github/workflows/deploy.yml` runs `node scripts/build-site.mjs` on push to `main`, every hour and on demand. The script reads Airtable and OpenWeatherMap with `AIRTABLE_TOKEN`, `AIRTABLE_BASE_ID` and `OPENWEATHER_API_KEY` from repo Actions secrets and writes `_site/api/data` and `_site/api/weather`, the same paths the page fetches. Only data is published; keys never reach `_site/`. If weather fails the build still deploys and the panel shows "Weather unavailable".
 - **Client:** `js/data.js` loads only `api/data`. There is no static fallback; if it fails, the §8 error banner shows. The header badge says **Live · Airtable**.
-- **Keys:** `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` live only in `.env` (git-ignored; `.env.example` is committed with no values). The token never reaches the browser. Use a token scoped to this one base; if it leaks, revoke it and make a new one.
+- **Keys:** `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` live only in `.env` locally and in GitHub Actions secrets for the Pages build (`.env` is git-ignored; `.env.example` is committed with no values). The token never reaches the browser. Use a token scoped to this one base; if it leaks, revoke it and make a new one.
 
 ### 7.6 Warehouse weather (Exercise 4 bonus: external API)
 
