@@ -4,9 +4,9 @@
 
 A desktop-first dashboard for **Kivo**, a fictional US wholesale distributor of office supplies and electronics with warehouses in Columbus OH, Reno NV and Atlanta GA. It answers three questions at a glance: what is about to run out, which shipments are late, and how much stock value Kivo holds and where. It is a read-only decision aid for the operations manager, warehouse supervisors and buyers.
 
-**Status:** v1 + Exercise 4. The dashboard reads its data **only from an Airtable database**, through a small local server (`node server.mjs`). There is no static data file. GitHub Pages can't run the server, so the live link shows the load-error state; run it locally to see the data. All numbers are frozen at Nov 7, 2026, 8:00 AM ET.
+**Status:** v1 + Exercise 4. The dashboard reads its data **only from an Airtable database**, never from a file in the repo. Locally a small server (`node server.mjs`) reads Airtable on demand; on GitHub Pages a GitHub Actions workflow reads Airtable and OpenWeatherMap every hour with keys stored as repo secrets. All numbers are frozen at Nov 7, 2026, 8:00 AM ET.
 
-**Live:** https://aido-course.github.io/kivo-inventory-dashboard/ (no data there: see [How to run it](#how-to-run-it-data-from-airtable))
+**Live:** https://aido-course.github.io/kivo-inventory-dashboard/ (real Airtable data and weather, refreshed hourly)
 
 **Spec:** [SPEC.md](SPEC.md) is the source of truth. The dashboard is built from it.
 
@@ -47,7 +47,28 @@ On a phone (375 px), the sidebar becomes a bottom tab bar:
 
 ## Live site
 
-https://aido-course.github.io/kivo-inventory-dashboard/ (GitHub Pages, from `main`). Pages only hosts static files and can't run `server.mjs`, so this link shows the "Couldn't load dashboard data" state. To see the data, run it locally (below).
+https://aido-course.github.io/kivo-inventory-dashboard/
+
+Pages only hosts static files, so it can't run `server.mjs`. Instead, the workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) does the server's job ahead of time:
+
+```
+GitHub Actions (on push to main, every hour, or "Run workflow")
+  └─ node scripts/build-site.mjs   keys from repo secrets, never in the code
+       ├─ Airtable API       ──▶ _site/api/data
+       ├─ OpenWeatherMap API ──▶ _site/api/weather
+       └─ index.html, css, js, assets ──▶ _site/
+  └─ deploy _site/ to GitHub Pages
+```
+
+The page fetches `api/data` and `api/weather` exactly as it does locally, so the frontend code is the same in both places. Only the data is published; the keys stay inside the Actions job.
+
+### Set it up (once)
+
+1. **Settings → Secrets and variables → Actions → New repository secret**, add three secrets: `AIRTABLE_TOKEN`, `AIRTABLE_BASE_ID`, `OPENWEATHER_API_KEY` (same values as in `.env`).
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
+3. **Actions → Deploy dashboard to GitHub Pages → Run workflow** (or push to `main`).
+
+To see an Airtable change on the live site, edit a record, then run the workflow (or wait for the hourly run). Build the same site locally with `node scripts/build-site.mjs` (output in `_site/`, git-ignored).
 
 ## How to run it (data from Airtable)
 
@@ -168,6 +189,8 @@ Browser tests check filters, sorting, the warehouse switch, the dialog, states, 
 | `scripts/generate-data.js` | Seeded data generator, input for the Airtable seed and the tests (prints JSON) |
 | `scripts/seed-airtable.mjs` | Creates the Airtable tables, upserts the data subset, deletes stale records |
 | `scripts/airtable.mjs` | Tiny Airtable API client; reads the token from `.env` |
+| `scripts/build-site.mjs` | Builds the static Pages site: reads Airtable and OpenWeatherMap and writes `_site/api/data` and `_site/api/weather` |
+| `.github/workflows/deploy.yml` | GitHub Actions: runs the build with repo secrets and deploys to Pages (push, hourly, manual) |
 | `server.mjs` | Local server: serves the site, `GET /api/data` from Airtable and `GET /api/weather` from OpenWeatherMap |
 | `.env.example` | Template for `.env` (names only, no secret values) |
 | `tests/run-tests.mjs` | Node tests |
